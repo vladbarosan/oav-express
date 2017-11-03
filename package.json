@@ -37,7 +37,8 @@
     "@types/should": "^8.1.30"
   },
   "engines": {
-    "node": ">=6.9.1"
+    "node": ">=6.9.1",
+    "npm": "5.5.1"
   },
   "scripts": {
     "start": "node index.js",
