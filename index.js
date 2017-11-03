@@ -11,6 +11,8 @@ const oav = require('oav');
 const express = require('express');
 const bodyParser = require('body-parser');
 const multer = require('multer');
+const appInsights = require('applicationinsights');
+
 
 var swaggerSpecDevelopment = require('./openapi/oav-express.json');
 var swaggerSpecProduction = require('./openapi/oav-express-production.json');
@@ -26,6 +28,16 @@ const liveValidatorOptions = {
     url: 'https://github.com/vladbarosan/sample-openapi-specs'
   }
 };
+
+appInsights.setup()
+    .setAutoDependencyCorrelation(true)
+    .setAutoCollectRequests(true)
+    .setAutoCollectPerformance(true)
+    .setAutoCollectExceptions(true)
+    .setAutoCollectDependencies(true)
+    .setAutoCollectConsole(true)
+    .setUseDiskRetryCaching(true)
+    .start();
 
 //console.log(process.env['NODE_ENV']);
 const validator = new oav.LiveValidator(liveValidatorOptions);
@@ -74,6 +86,8 @@ app.post('/validate', (req, res) => {
   return res.send(validationResult);
 });
 console.log('Initializing the validator takes about 30 seconds. Please be patient :-).');
+
+let start = Date.now();
 validator.initialize().then(() => {
   console.log('Live validator initialized.');
   server = app.listen(port, () => {
@@ -84,3 +98,6 @@ validator.initialize().then(() => {
     return server;
   });
 });
+
+let duration = Date.now() - start;
+appInsights.defaultClient.trackMetric({name: "server startup time", value: duration});
