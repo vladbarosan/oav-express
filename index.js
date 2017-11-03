@@ -23,7 +23,7 @@ var server;
 const liveValidatorOptions = {
   git: {
     shouldClone: true,
-    url: 'https://github.com/Azure/azure-rest-api-specs.git'
+    url: 'https://github.com/vladbarosan/sample-openapi-specs'
   }
 };
 
