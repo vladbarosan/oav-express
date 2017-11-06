@@ -6,30 +6,59 @@
 
 'use strict';
 
-const path = require('path');
-const oav = require('oav');
-const express = require('express');
-const bodyParser = require('body-parser');
-const multer = require('multer');
-const appInsights = require('applicationinsights');
+const path = require('path'),
+  oav = require('oav'),
+  express = require('express'),
+  bodyParser = require('body-parser'),
+  multer = require('multer'),
+  appInsights = require('applicationinsights'),
+  cluster = require('cluster');
 
+if (cluster.isMaster) {
+  masterHandler();
+} else {
+  console.log("never get here");
+}
 
-var swaggerSpecDevelopment = require('./openapi/oav-express.json');
-var swaggerSpecProduction = require('./openapi/oav-express-production.json');
-const ErrorCodes = oav.Constants.ErrorCodes;
-const port = process.env.PORT || 8080;
-const app = express();
-var server;
+function masterHandler() {
+  let workers = {};
 
-// LiveValidator configuration options
-const liveValidatorOptions = {
-  git: {
-    shouldClone: true,
-    url: 'https://github.com/vladbarosan/sample-openapi-specs'
+  let numWorkers = 1;
+  console.log(`Master cluster setting up ${numWorkers} workers...`);
+
+  // Check that workers are online
+  cluster.on('online', (worker) => {
+    console.log(`The worker ${worker.id} responded after it was forked`);
+  });
+
+  // restart workers if they die
+  cluster.on('exit', (worker, code, signal) => {
+    console.log(`worker ${worker.id} died ${signal || code}.`);
+    delete workers[worker.id];
+    console.log(JSON.stringify(Object.keys(workers)));
+  });
+
+  cluster.setupMaster({
+    exec: 'worker.js',
+    silent: false
+  });
+
+  // Create workers
+  for (var i = 0; i < numWorkers; i++) {
+    const worker = cluster.fork();
+    workers[worker.id] = worker;
   }
-};
 
-appInsights.setup()
+  let start = Date.now();
+  var swaggerSpecDevelopment = require('./openapi/oav-express.json');
+  var swaggerSpecProduction = require('./openapi/oav-express-production.json');
+  const ErrorCodes = oav.Constants.ErrorCodes;
+  const port = process.env.PORT || 8080;
+  const app = express();
+  var server;
+
+  //App Insights instrumentation key is passed via APPINSIGHTS_INSTRUMENTATIONKEY env variable
+  appInsights.setup()
     .setAutoDependencyCorrelation(true)
     .setAutoCollectRequests(true)
     .setAutoCollectPerformance(true)
@@ -39,57 +68,57 @@ appInsights.setup()
     .setUseDiskRetryCaching(true)
     .start();
 
-//console.log(process.env['NODE_ENV']);
-const validator = new oav.LiveValidator(liveValidatorOptions);
+  //view engine setup
+  app.set('views', path.join(__dirname, 'views'));
+  app.set('view engine', 'pug');
 
-//view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'pug');
+  app.use(bodyParser.json()); // for parsing application/json
+  app.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
+  app.use(express.static(path.join(__dirname, 'public')));
 
-app.use(bodyParser.json()); // for parsing application/json
-app.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
-app.use(express.static(path.join(__dirname, 'public')));
+  app.get('/', (req, res) => {
+    res.send('Welcome to oav-express');
+  });
 
-app.get('/', (req, res) => {
-  res.send('Welcome to oav-express');
-});
-
-// serve swagger
-app.get('/swagger.json', function (req, res) {
-  res.setHeader('Content-Type', 'application/json');
-  let host;
-  if (server && server.address() && server.address().address) {
-    host = server.address().address;
-  }
-  if (host && (host === '::' || host === 'localhost')) {
-    res.send(swaggerSpecDevelopment);
-  } else {
-    res.send(swaggerSpecProduction);
-  }
-});
-
-// This responds a POST request for live validation
-app.post('/validate', (req, res) => {
-  let validationResult = validator.validateLiveRequestResponse(req.body);
-
-  // Something went wrong
-  if (validationResult && validationResult.errors && Array.isArray(validationResult.errors) && validationResult.errors.length) {
-    let errors = validationResult.errors;
-    let is400 = errors.some((error) => { return error.code === ErrorCodes.IncorrectInput; });
-    if (is400) {
-      // Return 400 with validationResult
-      return res.send(400, validationResult);
+  // serve swagger
+  app.get('/swagger.json', function (req, res) {
+    res.setHeader('Content-Type', 'application/json');
+    let host;
+    if (server && server.address() && server.address().address) {
+      host = server.address().address;
     }
-  }
+    if (host && (host === '::' || host === 'localhost')) {
+      res.send(swaggerSpecDevelopment);
+    } else {
+      res.send(swaggerSpecProduction);
+    }
+  });
 
-  // Return 200 with validationResult
-  return res.send(validationResult);
-});
-console.log('Initializing the validator takes about 30 seconds. Please be patient :-).');
+  // This responds a POST request for live validation
+  app.post('/validate', (req, res) => {
 
-let start = Date.now();
-validator.initialize().then(() => {
-  console.log('Live validator initialized.');
+    for (const workerId in cluster.workers) {
+      cluster.workers[workerId].send(req.body);
+    }
+
+    return res.status(200).send();
+  });
+
+  app.post('/createValidation', (req, res) => {
+
+    const worker = cluster.fork(req.body);
+    workers[worker.id] = worker;
+    console.log("Returning status");
+    return res.status(200).send();
+  });
+
+  app.post('/getValidation', (req, res) => {
+
+    return res.status(200).send();
+  });
+
+  console.log('Initializing the validator takes about 30 seconds. Please be patient :-).');
+
   server = app.listen(port, () => {
     let host = server.address().address;
     let port = server.address().port;
@@ -97,7 +126,8 @@ validator.initialize().then(() => {
     console.log(`oav - express app listening at http://${host}:${port}`);
     return server;
   });
-});
 
-let duration = Date.now() - start;
-appInsights.defaultClient.trackMetric({name: "server startup time", value: duration});
+  let duration = Date.now() - start;
+  appInsights.defaultClient.trackMetric({ name: "server startup time", value: duration });
+}
+
