@@ -10,7 +10,8 @@
             "name": "Launch Program",
             "program": "${workspaceRoot}/index.js",
             "env": {
-                "APPINSIGHTS_INSTRUMENTATIONKEY": "Specify APP insights key here"
+                "APPINSIGHTS_INSTRUMENTATIONKEY": "specify app insights instrumentation key",
+                "AZURE_STORAGE_CONNECTION_STRING": "specify connection string for validation results uploading"
             }
         },
         {

@@ -12,7 +12,8 @@ const path = require('path'),
   bodyParser = require('body-parser'),
   multer = require('multer'),
   appInsights = require('applicationinsights'),
-  cluster = require('cluster');
+  cluster = require('cluster'),
+  uuidv4 = require('uuid/v4');
 
 if (cluster.isMaster) {
   masterHandler();
@@ -106,10 +107,28 @@ function masterHandler() {
 
   app.post('/createValidation', (req, res) => {
 
-    const worker = cluster.fork(req.body);
+    if (Object.keys(workers).length > 9) {
+      return res.status(429).send({ error: "More live validations are running that it is supported. Try again later." });
+    }
+    let durationInSeconds = Number.parseInt(req.body.duration);
+
+    if (isNaN(durationInSeconds) || durationInSeconds > 60 * 30) {
+      return res.status(400).send({ error: "Duration is not a number or is longer than maximum allowed value of 30 minutes." });
+    }
+    const validationModelId = uuidv4();
+    const workerEnv = {
+      repoUrl: req.body.repoUrl,
+      branch: req.body.branch,
+      resourceProvider: req.body.resourceProvider,
+      apiVersion: req.body.apiVersion,
+      duration: req.body.duration,
+      validationModelId: validationModelId,
+    }
+    const worker = cluster.fork(workerEnv);
     workers[worker.id] = worker;
+
     console.log("Returning status");
-    return res.status(200).send();
+    return res.status(200).send({ "validationResultsId": validationModelId });
   });
 
   app.post('/getValidation', (req, res) => {

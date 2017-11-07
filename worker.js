@@ -11,7 +11,9 @@ const cluster = require('cluster'),
   appInsights = require('applicationinsights'),
   path = require('path'),
   os = require('os'),
-  url = require('url');
+  url = require('url'),
+  uuidv4 = require('uuid/v4'),
+  azure = require("azure-storage");
 
 //App Insights instrumentation key is passed via APPINSIGHTS_INSTRUMENTATIONKEY env variable
 appInsights.setup()
@@ -24,7 +26,23 @@ appInsights.setup()
   .setUseDiskRetryCaching(true)
   .start();
 
-console.log(`I am a worker ${cluster.worker.id} with env: ${JSON.stringify(process.env)}`);
+
+const tableService = azure.createTableService();
+const resultsTable = "oavResults";
+tableService.createTableIfNotExists(resultsTable, function (error, result, response) {
+  if (!error) {
+  }
+});
+
+const operationValidationResults = {}
+
+let totalSuccessRequestCount = 0;
+let totalSuccessResponseCount = 0;
+let totalSuccessCount = 0;
+let totalOperationCount = 0;
+let validationModelId = process.env.validationModelId;
+
+console.log(`validationModelId is ${validationModelId}`)
 
 const liveValidatorOptions = {
   git: {
@@ -34,22 +52,30 @@ const liveValidatorOptions = {
   directory: path.resolve(os.homedir(), `repo/${cluster.worker.id}`)
 };
 
-if (process.env.repoUrl !== undefined) {
-
-  console.log(`My repo url is: ${process.env.repoUrl}`)
-  liveValidatorOptions.git.url = process.env.repoUrl
+if (process.env.validationModelId === undefined) {
+  validationModelId = uuidv4();
 }
 
-//console.log(process.env['NODE_ENV']);
+if (process.env.repoUrl !== undefined) {
+  console.log(`My repo url is: ${process.env.repoUrl}`)
+  liveValidatorOptions.git.url = process.env.repoUrl;
+}
+
 const validator = new oav.LiveValidator(liveValidatorOptions);
+
 validator.initialize().then(() => {
-  console.log('Live validator initialized.');
+  console.log(`Live validator initialized for session ${validationModelId}`);
+
 
   let durationInSeconds = Number.parseInt(process.env.duration);
+
+  console.log('setting timeout for worker to be  ' + process.env.duration + 'parsed is ' + durationInSeconds);
+
   if (!isNaN(durationInSeconds)) {
     console.log('setting timeout for worker to be  ' + durationInSeconds);
-
     setTimeout(() => {
+      console.log("Exiting")
+      uploadValidationResults();
       cluster.worker.disconnect();
     }, 1000 * durationInSeconds);
   }
@@ -64,13 +90,12 @@ function getProvider(path) {
   let result;
   let pathMatch;
 
-  // Loop over the paths to find the last matched provider namespace
   while ((pathMatch = providerRegEx.exec(path)) != null) {
     result = pathMatch[1];
   }
 
   return result;
-};
+}
 
 function validateHandler(requestBody) {
 
@@ -83,32 +108,104 @@ function validateHandler(requestBody) {
   let apiVersion = parsedUrl.query['api-version'];
   let resourceProvider = getProvider(path);
 
-  if (process.env.resourceProvider !== undefined && resourceProvider !== process.env.resourceProvider) {
+  if (resourceProvider !== process.env.resourceProvider) {
     console.log(`received request  is ${resourceProvider} is different from worker resource Provider ${process.env.resourceProvider} `);
     return;
   }
 
-  if (process.env.apiVersion !== undefined && apiVersion !== process.env.apiVersion) {
+  if (apiVersion !== process.env.apiVersion) {
     console.log(`received request api version is ${apiVersion} is different from worker resource apiVersion ${process.env.apiVersion} `);
     return;
   }
 
   let validationResult = validator.validateLiveRequestResponse(requestBody);
-  console.log(JSON.stringify(validationResult));
-  /*
-    // Something went wrong
-    if (validationResult && validationResult.errors && Array.isArray(validationResult.errors) && validationResult.errors.length) {
-      let errors = validationResult.errors;
-      let is400 = errors.some((error) => { return error.code === ErrorCodes.IncorrectInput; });
-      if (is400) {
-        // Return 400 with validationResult
-        return res.send(400, validationResult);
-      }
-    }
 
-    // Return 200 with validationResult
-    return res.send(validationResult);
-  */
+  if (process.env.resourceProvider !== undefined) {
+    updateStats(validationResult);
+  }
+  console.log(JSON.stringify(validationResult));
+}
+
+function uploadValidationResults() {
+  console.log(JSON.stringify(operationValidationResults));
+
+  const entGen = azure.TableUtilities.entityGenerator;
+
+  const resultsEntity = {
+    PartitionKey: entGen.String(validationModelId),
+    RowKey: entGen.String("total"),
+    ResourceProvider: entGen.String(process.env.resourceProvider),
+    ApiVersion: entGen.String(process.env.apiVersion),
+    ModelSourceRepo: entGen.String(process.env.repoUrl),
+    ModelSourceBranch: entGen.String(process.env.branch),
+    Operations: entGen.Int32(totalOperationCount),
+    SuccessOperations: entGen.Int32(totalSuccessCount),
+    SuccessRate: entGen.Double((100 * (totalSuccessCount / totalOperationCount)).toPrecision(3)),
+    SuccessRequests: entGen.Int32(totalSuccessRequestCount),
+    SuccessResponses: entGen.Int32(totalSuccessResponseCount)
+  };
+
+  tableService.insertEntity(resultsTable, resultsEntity, function (error, result, response) {
+    if (!error) {
+      // result contains the ETag for the new entity
+    }
+  });
+
+  for (const [operationId, operationResults] of Object.entries(operationValidationResults)) {
+    const resultsEntity = {
+      PartitionKey: entGen.String(validationModelId),
+      RowKey: entGen.String(operationId),
+      ResourceProvider: entGen.String(process.env.resourceProvider),
+      ApiVersion: entGen.String(process.env.apiVersion),
+      ModelSourceRepo: entGen.String(process.env.repoUrl),
+      ModelSourceBranch: entGen.String(process.env.branch),
+      Operations: entGen.Int32(operationResults.operationCount),
+      SuccessOperations: entGen.Int32(operationResults.successCount),
+      SuccessRate: entGen.Double((100 * (operationResults.successCount / operationResults.operationCount)).toPrecision(3)),
+      SuccessRequests: entGen.Int32(operationResults.successRequestCount),
+      SuccessResponses: entGen.Int32(operationResults.successResponseCount)
+    };
+
+    tableService.insertEntity(resultsTable, resultsEntity, function (error, result, response) {
+      if (!error) {
+        // result contains the ETag for the new entity
+      }
+    });
+  }
+}
+
+function updateStats(validationResult) {
+
+  let operationId = validationResult.requestValidationResult.operationInfo[0].operationId;
+  ++totalOperationCount;
+
+  if (!operationValidationResults[operationId]) {
+    operationValidationResults[operationId] = {
+      operationCount: 0,
+      successCount: 0,
+      successRequestCount: 0,
+      successResponseCount: 0
+    }
+  }
+
+  ++operationValidationResults[operationId].operationCount;
+
+  if (validationResult.requestValidationResult.successfulRequest === true) {
+    ++totalSuccessRequestCount;
+    ++operationValidationResults[operationId].successRequestCount;
+  }
+
+  if (validationResult.responseValidationResult.successfulResponse === true) {
+    ++totalSuccessResponseCount;
+    ++operationValidationResults[operationId].successResponseCount;
+  }
+
+  const isOperationSuccessful = validationResult.requestValidationResult.successfulRequest && validationResult.responseValidationResult.successfulResponse;
+
+  if (isOperationSuccessful) {
+    ++totalSuccessCount;
+    ++operationValidationResults[operationId].successCount;
+  }
 }
 
 cluster.worker.on("message", validateHandler);
