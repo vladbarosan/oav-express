@@ -13,7 +13,8 @@ const path = require('path'),
   multer = require('multer'),
   appInsights = require('applicationinsights'),
   cluster = require('cluster'),
-  uuidv4 = require('uuid/v4');
+  uuidv4 = require('uuid/v4'),
+  azure = require("azure-storage");
 
 if (cluster.isMaster) {
   masterHandler();
@@ -57,6 +58,8 @@ function masterHandler() {
   const port = process.env.PORT || 8080;
   const app = express();
   var server;
+  const resultsTable = "oavResults";
+  const tableService = azure.createTableService();
 
   //App Insights instrumentation key is passed via APPINSIGHTS_INSTRUMENTATIONKEY env variable
   appInsights.setup()
@@ -131,9 +134,34 @@ function masterHandler() {
     return res.status(200).send({ "validationResultsId": validationModelId });
   });
 
-  app.post('/getValidation', (req, res) => {
+  app.get('/validations/:validationResultId', (req, res) => {
+    let validationResultId = req.params.validationResultId;
+    console.log(`got val ${validationResultId}`);
 
-    return res.status(200).send();
+    var query = new azure.TableQuery()
+      .where('PartitionKey eq ?', validationResultId)
+
+    tableService.queryEntities(resultsTable, query, null, function (error, result, response) {
+      if (!error) {
+        let entries = result.entries;
+
+        let flatResponse = entries.map(entity => {
+
+          delete entity[".metadata"];
+          for (let [key, value] of Object.entries(entity)) {
+            if (value.hasOwnProperty('_')) {
+              entity[key] = value._;
+            }
+          }
+          return entity;
+        });
+
+        return res.status(200).send(flatResponse);
+      } else {
+        console.log(`I got an error ${error.message}`);
+        return res.status(400).send({ error: error.message })
+      }
+    });
   });
 
   console.log('Initializing the validator takes about 30 seconds. Please be patient :-).');
@@ -145,8 +173,5 @@ function masterHandler() {
     console.log(`oav - express app listening at http://${host}:${port}`);
     return server;
   });
-
-  let duration = Date.now() - start;
-  appInsights.defaultClient.trackMetric({ name: "server startup time", value: duration });
 }
 
