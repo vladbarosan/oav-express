@@ -13,6 +13,7 @@ const cluster = require('cluster'),
   os = require('os'),
   url = require('url'),
   uuidv4 = require('uuid/v4'),
+  glob = require('glob'),
   azure = require("azure-storage");
 
 //App Insights instrumentation key is passed via APPINSIGHTS_INSTRUMENTATIONKEY env variable
@@ -63,6 +64,14 @@ if (process.env.repoUrl !== undefined) {
 
 if (process.env.branch !== undefined) {
   liveValidatorOptions.git.branch = process.env.branch;
+}
+
+if (process.env.resourceProvider !== undefined && process.env.apiVersion) {
+  let validationJsonsPattern = `/specification/**/${process.env.resourceProvider}/${process.env.apiVersion}/**/*.json`;
+
+  console.log(`paths are ${JSON.stringify(validationJsonsPattern)}`);
+
+  liveValidatorOptions.swaggerPathsPattern = validationJsonsPattern;
 }
 
 const validator = new oav.LiveValidator(liveValidatorOptions);

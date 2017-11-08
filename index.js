@@ -108,7 +108,7 @@ function masterHandler() {
     return res.status(200).send();
   });
 
-  app.post('/createValidation', (req, res) => {
+  app.post('/validations', (req, res) => {
 
     if (Object.keys(workers).length > 9) {
       return res.status(429).send({ error: "More live validations are running that it is supported. Try again later." });
@@ -118,28 +118,28 @@ function masterHandler() {
     if (isNaN(durationInSeconds) || durationInSeconds > 60 * 30) {
       return res.status(400).send({ error: "Duration is not a number or is longer than maximum allowed value of 30 minutes." });
     }
-    const validationModelId = uuidv4();
+    const validationId = uuidv4();
     const workerEnv = {
       repoUrl: req.body.repoUrl,
       branch: req.body.branch,
       resourceProvider: req.body.resourceProvider,
       apiVersion: req.body.apiVersion,
       duration: req.body.duration,
-      validationModelId: validationModelId,
+      validationModelId: validationId,
     }
     const worker = cluster.fork(workerEnv);
     workers[worker.id] = worker;
 
     console.log("Returning status");
-    return res.status(200).send({ "validationResultsId": validationModelId });
+    return res.status(200).send({ "validationId": validationId });
   });
 
-  app.get('/validations/:validationResultId', (req, res) => {
-    let validationResultId = req.params.validationResultId;
-    console.log(`got val ${validationResultId}`);
+  app.get('/validations/:validationId', (req, res) => {
+    let validationId = req.params.validationId;
+    console.log(`got val ${validationId}`);
 
     var query = new azure.TableQuery()
-      .where('PartitionKey eq ?', validationResultId)
+      .where('PartitionKey eq ?', validationId);
 
     tableService.queryEntities(resultsTable, query, null, function (error, result, response) {
       if (!error) {
