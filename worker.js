@@ -61,6 +61,10 @@ if (process.env.repoUrl !== undefined) {
   liveValidatorOptions.git.url = process.env.repoUrl;
 }
 
+if (process.env.branch !== undefined) {
+  liveValidatorOptions.git.branch = process.env.branch;
+}
+
 const validator = new oav.LiveValidator(liveValidatorOptions);
 
 validator.initialize().then(() => {
