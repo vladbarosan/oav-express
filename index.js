@@ -125,7 +125,7 @@ function masterHandler() {
       resourceProvider: req.body.resourceProvider,
       apiVersion: req.body.apiVersion,
       duration: req.body.duration,
-      validationModelId: validationId,
+      validationId: validationId,
     }
     const worker = cluster.fork(workerEnv);
     workers[worker.id] = worker;

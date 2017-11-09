@@ -41,9 +41,9 @@ let totalSuccessRequestCount = 0;
 let totalSuccessResponseCount = 0;
 let totalSuccessCount = 0;
 let totalOperationCount = 0;
-let validationModelId = process.env.validationModelId;
+let validationId = process.env.validationId;
 
-console.log(`validationModelId is ${validationModelId}`)
+console.log(`validationId is ${validationId}`)
 
 const liveValidatorOptions = {
   git: {
@@ -53,8 +53,8 @@ const liveValidatorOptions = {
   directory: path.resolve(os.homedir(), `repo/${cluster.worker.id}`)
 };
 
-if (process.env.validationModelId === undefined) {
-  validationModelId = uuidv4();
+if (process.env.validationId === undefined) {
+  validationId = uuidv4();
 }
 
 if (process.env.repoUrl !== undefined) {
@@ -77,7 +77,7 @@ if (process.env.resourceProvider !== undefined && process.env.apiVersion) {
 const validator = new oav.LiveValidator(liveValidatorOptions);
 
 validator.initialize().then(() => {
-  console.log(`Live validator initialized for session ${validationModelId}`);
+  console.log(`Live validator initialized for session ${validationId}`);
 
 
   let durationInSeconds = Number.parseInt(process.env.duration);
@@ -89,7 +89,12 @@ validator.initialize().then(() => {
     setTimeout(() => {
       console.log("Exiting")
       uploadValidationResults();
-      cluster.worker.disconnect();
+      console.log("getting ready to disconnect");
+      appInsights.defaultClient.flush();
+      appInsights.dispose();
+      appInsights.start()
+      cluster.worker.kill();
+
     }, 1000 * durationInSeconds);
   }
 });
@@ -145,7 +150,7 @@ function uploadValidationResults() {
   const entGen = azure.TableUtilities.entityGenerator;
 
   const resultsEntity = {
-    PartitionKey: entGen.String(validationModelId),
+    PartitionKey: entGen.String(validationId),
     RowKey: entGen.String("total"),
     ResourceProvider: entGen.String(process.env.resourceProvider),
     ApiVersion: entGen.String(process.env.apiVersion),
@@ -166,7 +171,7 @@ function uploadValidationResults() {
 
   for (const [operationId, operationResults] of Object.entries(operationValidationResults)) {
     const resultsEntity = {
-      PartitionKey: entGen.String(validationModelId),
+      PartitionKey: entGen.String(validationId),
       RowKey: entGen.String(operationId),
       ResourceProvider: entGen.String(process.env.resourceProvider),
       ApiVersion: entGen.String(process.env.apiVersion),
@@ -219,6 +224,7 @@ function updateStats(validationResult) {
     ++totalSuccessCount;
     ++operationValidationResults[operationId].successCount;
   }
+  appInsights.defaultClient.trackTrace({ message: JSON.stringify(validationResult) });
 }
 
 cluster.worker.on("message", validateHandler);
