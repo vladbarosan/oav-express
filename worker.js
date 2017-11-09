@@ -50,7 +50,7 @@ const liveValidatorOptions = {
     shouldClone: true,
     url: 'https://github.com/vladbarosan/sample-openapi-specs',
   },
-  directory: path.resolve(os.homedir(), `repo/${cluster.worker.id}`)
+  directory: path.resolve(os.homedir(), `repo${cluster.worker.id}`)
 };
 
 if (process.env.validationId === undefined) {
