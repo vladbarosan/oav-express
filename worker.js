@@ -91,9 +91,10 @@ validator.initialize().then(() => {
       uploadValidationResults();
       console.log("getting ready to disconnect");
       appInsights.defaultClient.flush();
-      appInsights.dispose();
-      appInsights.start()
-      cluster.worker.kill();
+      cluster.worker.disconnect();
+      setTimeout(() => {
+        cluster.worker.kill();
+      }, 2000);
 
     }, 1000 * durationInSeconds);
   }
