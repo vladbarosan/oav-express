@@ -13,7 +13,6 @@ const cluster = require('cluster'),
   os = require('os'),
   url = require('url'),
   uuidv4 = require('uuid/v4'),
-  glob = require('glob'),
   azure = require("azure-storage");
 
 //App Insights instrumentation key is passed via APPINSIGHTS_INSTRUMENTATIONKEY env variable
