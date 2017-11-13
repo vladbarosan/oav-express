@@ -34,7 +34,7 @@ tableService.createTableIfNotExists(resultsTable, function (error, result, respo
   }
 });
 
-const operationValidationResults = {}
+const operationValidationResults = {};
 
 let totalSuccessRequestCount = 0;
 let totalSuccessResponseCount = 0;
@@ -42,7 +42,7 @@ let totalSuccessCount = 0;
 let totalOperationCount = 0;
 let validationId = process.env.validationId;
 
-console.log(`validationId is ${validationId}`)
+console.log(`ValidationId is ${validationId}`)
 
 const liveValidatorOptions = {
   git: {
@@ -57,7 +57,7 @@ if (process.env.validationId === undefined) {
 }
 
 if (process.env.repoUrl !== undefined) {
-  console.log(`My repo url is: ${process.env.repoUrl}`)
+  console.log(`Repo url is: ${process.env.repoUrl}`)
   liveValidatorOptions.git.url = process.env.repoUrl;
 }
 
@@ -86,7 +86,6 @@ validator.initialize().then(() => {
   if (!isNaN(durationInSeconds)) {
     console.log('setting timeout for worker to be  ' + durationInSeconds);
     setTimeout(() => {
-      console.log("Exiting")
       uploadValidationResults();
       console.log("getting ready to disconnect");
       appInsights.defaultClient.flush();
@@ -195,6 +194,7 @@ function uploadValidationResults() {
 function updateStats(validationResult) {
 
   let operationId = validationResult.requestValidationResult.operationInfo[0].operationId;
+  let logSeverity = 3;
   ++totalOperationCount;
 
   if (!operationValidationResults[operationId]) {
@@ -223,8 +223,10 @@ function updateStats(validationResult) {
   if (isOperationSuccessful) {
     ++totalSuccessCount;
     ++operationValidationResults[operationId].successCount;
+    logSeverity = 4;
   }
-  appInsights.defaultClient.trackTrace({ message: JSON.stringify(validationResult) });
+
+  appInsights.defaultClient.trackTrace({ message: JSON.stringify(validationResult), properties: { "validationId": validationId, "operationId": operationId, "isSuccess": isOperationSuccessful }, severity: logSeverity });
 }
 
 cluster.worker.on("message", validateHandler);

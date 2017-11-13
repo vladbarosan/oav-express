@@ -16,11 +16,7 @@ const path = require('path'),
   uuidv4 = require('uuid/v4'),
   azure = require("azure-storage");
 
-if (cluster.isMaster) {
-  masterHandler();
-} else {
-  console.log("never get here");
-}
+masterHandler();
 
 function masterHandler() {
   let workers = {};
@@ -35,7 +31,7 @@ function masterHandler() {
 
   // restart workers if they die
   cluster.on('exit', (worker, code, signal) => {
-    console.log(`worker ${worker.id} died ${signal || code}.`);
+    console.log(`worker ${worker.id} finished ${signal || code}.`);
     delete workers[worker.id];
     console.log(JSON.stringify(Object.keys(workers)));
   });
@@ -45,7 +41,7 @@ function masterHandler() {
     silent: false
   });
 
-  // Create workers
+  // Create default workers.
   for (var i = 0; i < numWorkers; i++) {
     const worker = cluster.fork();
     workers[worker.id] = worker;
@@ -56,6 +52,7 @@ function masterHandler() {
   var swaggerSpecProduction = require('./openapi/oav-express-production.json');
   const ErrorCodes = oav.Constants.ErrorCodes;
   const port = process.env.PORT || 8080;
+  const maxWorkers = 20;
   const app = express();
   var server;
   const resultsTable = "oavResults";
@@ -108,16 +105,19 @@ function masterHandler() {
     return res.status(200).send();
   });
 
+  // Create new set of models to validate against
   app.post('/validations', (req, res) => {
 
-    if (Object.keys(workers).length > 9) {
-      return res.status(429).send({ error: "More live validations are running that it is supported. Try again later." });
+    if (Object.keys(workers).length >= maxWorkers) {
+      return res.status(429).send({ error: "More live validations are running then the service currently supports. Try again later." });
     }
+
     let durationInSeconds = Number.parseInt(req.body.duration);
 
-    if (isNaN(durationInSeconds) || durationInSeconds > 60 * 30) {
-      return res.status(400).send({ error: "Duration is not a number or is longer than maximum allowed value of 30 minutes." });
+    if (isNaN(durationInSeconds) || durationInSeconds > 60 * 60) {
+      return res.status(400).send({ error: "Duration is not a number or it is longer than maximum allowed value of 60 minutes." });
     }
+
     const validationId = uuidv4();
     const workerEnv = {
       repoUrl: req.body.repoUrl,
@@ -126,14 +126,14 @@ function masterHandler() {
       apiVersion: req.body.apiVersion,
       duration: req.body.duration,
       validationId: validationId,
-    }
+    };
     const worker = cluster.fork(workerEnv);
     workers[worker.id] = worker;
 
-    console.log("Returning status");
     return res.status(200).send({ "validationId": validationId });
   });
 
+  // Get results for a specific validation model that was created
   app.get('/validations/:validationId', (req, res) => {
     let validationId = req.params.validationId;
     console.log(`got val ${validationId}`);
@@ -145,6 +145,7 @@ function masterHandler() {
       if (!error) {
         let entries = result.entries;
 
+        // Result comes in the form  {Property: {_: value; $: type}}. Transform to {Property: Value}
         let flatResponse = entries.map(entity => {
 
           delete entity[".metadata"];
@@ -158,13 +159,10 @@ function masterHandler() {
 
         return res.status(200).send(flatResponse);
       } else {
-        console.log(`I got an error ${error.message}`);
         return res.status(400).send({ error: error.message })
       }
     });
   });
-
-  console.log('Initializing the validator takes about 30 seconds. Please be patient :-).');
 
   server = app.listen(port, () => {
     let host = server.address().address;
