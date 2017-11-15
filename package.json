@@ -28,15 +28,15 @@
     "uuid": "^3.1.0"
   },
   "devDependencies": {
-    "jshint": "2.9.4",
-    "request": "^2.81.0",
-    "mocha": "^3.2.0",
-    "should": "5.2.0",
-    "gulp": "^3.9.1",
-    "colors": "1.1.2",
-    "yargs": "^7.1.0",
     "@types/mocha": "^2.2.40",
-    "@types/should": "^8.1.30"
+    "@types/should": "^8.1.30",
+    "colors": "1.1.2",
+    "gulp": "^3.9.1",
+    "jshint": "^2.9.4",
+    "mocha": "^3.2.0",
+    "request": "^2.81.0",
+    "should": "5.2.0",
+    "yargs": "^7.1.0"
   },
   "engines": {
     "node": ">=6.9.1",

@@ -7,13 +7,9 @@
 'use strict';
 
 const cluster = require('cluster'),
-  oav = require('oav'),
-  appInsights = require('applicationinsights'),
   path = require('path'),
   os = require('os'),
   url = require('url'),
-  uuidv4 = require('uuid/v4'),
-  azure = require("azure-storage"),
   ValidationWorker = require("./lib/validationWorker");
 
 console.log(`ValidationId is ${process.env.validationId}`)

@@ -14,13 +14,7 @@ const path = require('path'),
   appInsights = require('applicationinsights'),
   cluster = require('cluster'),
   uuidv4 = require('uuid/v4'),
-  azure = require("azure-storage");
-
-
-let workers = {};
-
-let numWorkers = 1;
-console.log(`Master cluster setting up ${numWorkers} workers...`);
+  azure = require('azure-storage');
 
 // Check that workers are online
 cluster.on('online', (worker) => {
@@ -30,8 +24,6 @@ cluster.on('online', (worker) => {
 // restart workers if they die
 cluster.on('exit', (worker, code, signal) => {
   console.log(`worker ${worker.id} finished ${signal || code}.`);
-  delete workers[worker.id];
-  console.log(JSON.stringify(Object.keys(workers)));
 });
 
 cluster.setupMaster({
@@ -41,17 +33,13 @@ cluster.setupMaster({
 
 // Create default worker
 const defaultWorker = cluster.fork();
-workers[defaultWorker.id] = defaultWorker;
-
-let start = Date.now();
 var swaggerSpecDevelopment = require('./openapi/oav-express.json');
 var swaggerSpecProduction = require('./openapi/oav-express-production.json');
-const ErrorCodes = oav.Constants.ErrorCodes;
 const port = process.env.PORT || 8080;
 const maxWorkers = 20;
 const app = express();
 var server;
-const resultsTable = "oavResults";
+const resultsTable = 'oavResults';
 const tableService = azure.createTableService();
 
 //App Insights instrumentation key is passed via APPINSIGHTS_INSTRUMENTATIONKEY env variable
@@ -78,7 +66,7 @@ app.get('/', (req, res) => {
 });
 
 // serve swagger
-app.get('/swagger.json', function (req, res) {
+app.get('/swagger.json', (req, res) => {
   res.setHeader('Content-Type', 'application/json');
   let host;
   if (server && server.address() && server.address().address) {
@@ -94,8 +82,8 @@ app.get('/swagger.json', function (req, res) {
 // This responds a POST request for live validation
 app.post('/validate', (req, res) => {
 
-  for (const workerId in cluster.workers) {
-    cluster.workers[workerId].send(req.body);
+  for (const [workerId, worker] of Object.entries(cluster.workers)) {
+    worker.send(req.body);
   }
 
   return res.status(200).send();
@@ -104,14 +92,14 @@ app.post('/validate', (req, res) => {
 // Create new set of models to validate against
 app.post('/validations', (req, res) => {
 
-  if (Object.keys(workers).length >= maxWorkers) {
-    return res.status(429).send({ error: "More live validations are running then the service currently supports. Try again later." });
+  if (Object.keys(cluster.workers).length >= maxWorkers) {
+    return res.status(429).send({ error: 'More live validations are running then the service currently supports. Try again later.' });
   }
 
   let durationInSeconds = Number.parseInt(req.body.duration);
 
   if (isNaN(durationInSeconds) || durationInSeconds > 60 * 60) {
-    return res.status(400).send({ error: "Duration is not a number or it is longer than maximum allowed value of 60 minutes." });
+    return res.status(400).send({ error: 'Duration is not a number or it is longer than maximum allowed value of 60 minutes.' });
   }
 
   const validationId = uuidv4();
@@ -124,9 +112,8 @@ app.post('/validations', (req, res) => {
     validationId: validationId,
   };
   const worker = cluster.fork(workerEnv);
-  workers[worker.id] = worker;
 
-  return res.status(200).send({ "validationId": validationId });
+  return res.status(200).send({ 'validationId': validationId });
 });
 
 // Get results for a specific validation model that was created
@@ -137,26 +124,33 @@ app.get('/validations/:validationId', (req, res) => {
   var query = new azure.TableQuery()
     .where('PartitionKey eq ?', validationId);
 
-  tableService.queryEntities(resultsTable, query, null, function (error, result, response) {
-    if (!error) {
-      let entries = result.entries;
-
-      // Result comes in the form  {Property: {_: value; $: type}}. Transform to {Property: Value}
-      let flatResponse = entries.map(entity => {
-
-        delete entity[".metadata"];
-        for (let [key, value] of Object.entries(entity)) {
-          if (value.hasOwnProperty('_')) {
-            entity[key] = value._;
-          }
-        }
-        return entity;
-      });
-
-      return res.status(200).send(flatResponse);
-    } else {
-      return res.status(400).send({ error: error.message })
+  tableService.queryEntities(resultsTable, query, null, (error, result, response) => {
+    if (error) {
+      return res.status(400).send({ error: error.message });
     }
+    let entries = result.entries;
+
+    // Result comes in the form  {Property: {_: value; $: type}}. Transform to {Property: Value}
+    let formattedResponse = entries.map(entity => {
+
+      entity.validationId = entity['PartitionKey'];
+      entity.operationId = entity['RowKey'];
+      entity.validationEndtime = entity['Timestamp'];
+
+      delete entity['.metadata'];
+      delete entity['PartitionKey'];
+      delete entity['RowKey'];
+      delete entity['Timestamp'];
+
+      for (let [key, value] of Object.entries(entity)) {
+        if (value.hasOwnProperty('_')) {
+          entity[key] = value._;
+        }
+      }
+      return entity;
+    });
+
+    return res.status(200).send(formattedResponse);
   });
 });
 
