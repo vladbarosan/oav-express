@@ -22,7 +22,8 @@ export interface Oav {
 
 
     /**
-     * Validates the request and response against the operatswagger specification
+     * Validates the request and response against the all the swagger models
+     * registered.
      *
      * @param {object} requestResponse The request and corresponding response to
      * validate.
@@ -62,14 +63,15 @@ export interface Oav {
      *
      * @returns {Promise} A promise is returned
      *
-     * @resolve {HttpOperationResponse<ValidationResult>} - The deserialized result object.
+     * @resolve {HttpOperationResponse<null>} - The deserialized result object.
      *
      * @reject {Error|ServiceError} - The error object.
      */
-    validateRequestResponseWithHttpOperationResponse(requestResponse: models.RequestResponse, options?: { customHeaders? : { [headerName: string]: string; } }): Promise<HttpOperationResponse<models.ValidationResult>>;
+    validateRequestResponseWithHttpOperationResponse(requestResponse: models.RequestResponse, options?: { customHeaders? : { [headerName: string]: string; } }): Promise<HttpOperationResponse<void>>;
 
     /**
-     * Validates the request and response against the operatswagger specification
+     * Validates the request and response against the all the swagger models
+     * registered.
      *
      * @param {object} requestResponse The request and corresponding response to
      * validate.
@@ -114,7 +116,7 @@ export interface Oav {
      *
      * {Promise} A promise is returned.
      *
-     *                      @resolve {ValidationResult} - The deserialized result object.
+     *                      @resolve {null} - The deserialized result object.
      *
      *                      @reject {Error|ServiceError} - The error object.
      *
@@ -122,14 +124,157 @@ export interface Oav {
      *
      *                      {Error|ServiceError}  err        - The Error object if an error occurred, null otherwise.
      *
-     *                      {ValidationResult} [result]   - The deserialized result object if an error did not occur.
-     *                      See {@link ValidationResult} for more information.
+     *                      {null} [result]   - The deserialized result object if an error did not occur.
      *
      *                      {WebResource} [request]  - The HTTP Request object if an error did not occur.
      *
      *                      {http.IncomingMessage} [response] - The HTTP Response stream if an error did not occur.
      */
-    validateRequestResponse(requestResponse: models.RequestResponse, options?: { customHeaders? : { [headerName: string]: string; } }): Promise<models.ValidationResult>;
-    validateRequestResponse(requestResponse: models.RequestResponse, callback: ServiceCallback<models.ValidationResult>): void;
-    validateRequestResponse(requestResponse: models.RequestResponse, options: { customHeaders? : { [headerName: string]: string; } }, callback: ServiceCallback<models.ValidationResult>): void;
+    validateRequestResponse(requestResponse: models.RequestResponse, options?: { customHeaders? : { [headerName: string]: string; } }): Promise<void>;
+    validateRequestResponse(requestResponse: models.RequestResponse, callback: ServiceCallback<void>): void;
+    validateRequestResponse(requestResponse: models.RequestResponse, options: { customHeaders? : { [headerName: string]: string; } }, callback: ServiceCallback<void>): void;
+
+
+    /**
+     * Create a new swagger model to do validations against.
+     *
+     * @param {object} validationModel The parameters for the swagger model to
+     * create.
+     *
+     * @param {string} validationModel.repoUrl The repo url from where to construct
+     * the swagger model.
+     *
+     * @param {string} validationModel.branch The branch of the repo from where to
+     * construct the swagger model.
+     *
+     * @param {string} validationModel.resourceProvider The resource provider for
+     * whom to construct the swagger model.
+     *
+     * @param {string} validationModel.apiVersion The api version of the resource
+     * provider to construct the swagger model.
+     *
+     * @param {number} validationModel.duration The duration in seconds for which
+     * to run validations against the model. The results of the validation will be
+     * available only after this duration has passed.
+     *
+     * @param {object} [options] Optional Parameters.
+     *
+     * @param {object} [options.customHeaders] Headers that will be added to the
+     * request
+     *
+     * @returns {Promise} A promise is returned
+     *
+     * @resolve {HttpOperationResponse<ValidationModelCreateResponse>} - The deserialized result object.
+     *
+     * @reject {Error|ServiceError} - The error object.
+     */
+    createValidationModelWithHttpOperationResponse(validationModel: models.ValidationModel, options?: { customHeaders? : { [headerName: string]: string; } }): Promise<HttpOperationResponse<models.ValidationModelCreateResponse>>;
+
+    /**
+     * Create a new swagger model to do validations against.
+     *
+     * @param {object} validationModel The parameters for the swagger model to
+     * create.
+     *
+     * @param {string} validationModel.repoUrl The repo url from where to construct
+     * the swagger model.
+     *
+     * @param {string} validationModel.branch The branch of the repo from where to
+     * construct the swagger model.
+     *
+     * @param {string} validationModel.resourceProvider The resource provider for
+     * whom to construct the swagger model.
+     *
+     * @param {string} validationModel.apiVersion The api version of the resource
+     * provider to construct the swagger model.
+     *
+     * @param {number} validationModel.duration The duration in seconds for which
+     * to run validations against the model. The results of the validation will be
+     * available only after this duration has passed.
+     *
+     * @param {object} [options] Optional Parameters.
+     *
+     * @param {object} [options.customHeaders] Headers that will be added to the
+     * request
+     *
+     * @param {ServiceCallback} [optionalCallback] - The optional callback.
+     *
+     * @returns {ServiceCallback|Promise} If a callback was passed as the last
+     * parameter then it returns the callback else returns a Promise.
+     *
+     * {Promise} A promise is returned.
+     *
+     *                      @resolve {ValidationModelCreateResponse} - The deserialized result object.
+     *
+     *                      @reject {Error|ServiceError} - The error object.
+     *
+     * {ServiceCallback} optionalCallback(err, result, request, response)
+     *
+     *                      {Error|ServiceError}  err        - The Error object if an error occurred, null otherwise.
+     *
+     *                      {ValidationModelCreateResponse} [result]   - The deserialized result object if an error did not occur.
+     *                      See {@link ValidationModelCreateResponse} for more
+     *                      information.
+     *
+     *                      {WebResource} [request]  - The HTTP Request object if an error did not occur.
+     *
+     *                      {http.IncomingMessage} [response] - The HTTP Response stream if an error did not occur.
+     */
+    createValidationModel(validationModel: models.ValidationModel, options?: { customHeaders? : { [headerName: string]: string; } }): Promise<models.ValidationModelCreateResponse>;
+    createValidationModel(validationModel: models.ValidationModel, callback: ServiceCallback<models.ValidationModelCreateResponse>): void;
+    createValidationModel(validationModel: models.ValidationModel, options: { customHeaders? : { [headerName: string]: string; } }, callback: ServiceCallback<models.ValidationModelCreateResponse>): void;
+
+
+    /**
+     * Gets the result of a validation.
+     *
+     * @param {string} validationId The validation model Id.
+     *
+     * @param {object} [options] Optional Parameters.
+     *
+     * @param {object} [options.customHeaders] Headers that will be added to the
+     * request
+     *
+     * @returns {Promise} A promise is returned
+     *
+     * @resolve {HttpOperationResponse<Array>} - The deserialized result object.
+     *
+     * @reject {Error|ServiceError} - The error object.
+     */
+    getValidationResultWithHttpOperationResponse(validationId: string, options?: { customHeaders? : { [headerName: string]: string; } }): Promise<HttpOperationResponse<models.OperationValidationResult[]>>;
+
+    /**
+     * Gets the result of a validation.
+     *
+     * @param {string} validationId The validation model Id.
+     *
+     * @param {object} [options] Optional Parameters.
+     *
+     * @param {object} [options.customHeaders] Headers that will be added to the
+     * request
+     *
+     * @param {ServiceCallback} [optionalCallback] - The optional callback.
+     *
+     * @returns {ServiceCallback|Promise} If a callback was passed as the last
+     * parameter then it returns the callback else returns a Promise.
+     *
+     * {Promise} A promise is returned.
+     *
+     *                      @resolve {Array} - The deserialized result object.
+     *
+     *                      @reject {Error|ServiceError} - The error object.
+     *
+     * {ServiceCallback} optionalCallback(err, result, request, response)
+     *
+     *                      {Error|ServiceError}  err        - The Error object if an error occurred, null otherwise.
+     *
+     *                      {Array} [result]   - The deserialized result object if an error did not occur.
+     *
+     *                      {WebResource} [request]  - The HTTP Request object if an error did not occur.
+     *
+     *                      {http.IncomingMessage} [response] - The HTTP Response stream if an error did not occur.
+     */
+    getValidationResult(validationId: string, options?: { customHeaders? : { [headerName: string]: string; } }): Promise<models.OperationValidationResult[]>;
+    getValidationResult(validationId: string, callback: ServiceCallback<models.OperationValidationResult[]>): void;
+    getValidationResult(validationId: string, options: { customHeaders? : { [headerName: string]: string; } }, callback: ServiceCallback<models.OperationValidationResult[]>): void;
 }

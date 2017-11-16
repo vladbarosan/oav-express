@@ -11,22 +11,18 @@
 'use strict';
 
 /**
- * @class
- * Initializes a new instance of the LiveRequest class.
- * @constructor
  * Properties of the request.
- *
- * @member {object} headers Headers of the request.
- *
- * @member {string} method Http verb of the request. Possible values include:
- * 'GET', 'PUT', 'PATCH', 'POST', 'DELETE', 'HEAD', 'OPTIONS', 'TRACE'
- *
- * @member {string} url Url of the request.
- *
- * @member {object} [body] Parsed body of the request as a JSON.
  *
  */
 class LiveRequest {
+  /**
+   * Create a LiveRequest.
+   * @member {object} headers Headers of the request.
+   * @member {string} method Http verb of the request. Possible values include:
+   * 'GET', 'PUT', 'PATCH', 'POST', 'DELETE', 'HEAD', 'OPTIONS', 'TRACE'
+   * @member {string} url Url of the request.
+   * @member {object} [body] Parsed body of the request as a JSON.
+   */
   constructor() {
   }
 

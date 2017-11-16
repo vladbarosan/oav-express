@@ -11,22 +11,20 @@
 'use strict';
 
 /**
- * @class
- * Initializes a new instance of the OperationInfo class.
- * @constructor
  * Describes the operation against which the live request and response
  * validation happened.
  *
- * @member {string} operationId The id of the operation against which
- * validation happened. This will help find the problematic information in the
- * spec and will be useful in preparing report.
- *
- * @member {string} apiVersion Describes the api-version of the openapi
- * specification. This will help find the openapi spec corresponding to that
- * api-version and will be useful in preparing report.
- *
  */
 class OperationInfo {
+  /**
+   * Create a OperationInfo.
+   * @member {string} operationId The id of the operation against which
+   * validation happened. This will help find the problematic information in
+   * the spec and will be useful in preparing report.
+   * @member {string} apiVersion Describes the api-version of the openapi
+   * specification. This will help find the openapi spec corresponding to that
+   * api-version and will be useful in preparing report.
+   */
   constructor() {
   }
 

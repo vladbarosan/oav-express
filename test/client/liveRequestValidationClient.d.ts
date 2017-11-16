@@ -8,10 +8,10 @@
  * regenerated.
  */
 
-import { ServiceClientOptions, RequestOptions, ServiceCallback, HttpOperationResponse } from 'ms-rest';
+import { ServiceClient, ServiceClientOptions } from 'ms-rest';
 import * as operations from "./operations";
 
-declare class LiveRequestValidationClient {
+declare class LiveRequestValidationClient extends ServiceClient {
   /**
    * @class
    * Initializes a new instance of the LiveRequestValidationClient class.

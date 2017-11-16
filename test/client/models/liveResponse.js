@@ -11,22 +11,18 @@
 'use strict';
 
 /**
- * @class
- * Initializes a new instance of the LiveResponse class.
- * @constructor
  * Properties of the response.
- *
- * @member {string} statusCode The Response status code.
- *
- * @member {object} headers Headers of the response.
- *
- * @member {object} [body] Body of the response.
- *
- * @member {string} [encoding] The encoding of the response body when the body
- * is a buffer.
  *
  */
 class LiveResponse {
+  /**
+   * Create a LiveResponse.
+   * @member {string} statusCode The Response status code.
+   * @member {object} headers Headers of the response.
+   * @member {object} [body] Body of the response.
+   * @member {string} [encoding] The encoding of the response body when the
+   * body is a buffer.
+   */
   constructor() {
   }
 

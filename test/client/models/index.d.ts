@@ -18,14 +18,10 @@ import * as moment from "moment";
  * Properties of the request.
  *
  * @member {object} headers Headers of the request.
- *
  * @member {string} method Http verb of the request. Possible values include:
  * 'GET', 'PUT', 'PATCH', 'POST', 'DELETE', 'HEAD', 'OPTIONS', 'TRACE'
- *
  * @member {string} url Url of the request.
- *
  * @member {object} [body] Parsed body of the request as a JSON.
- *
  */
 export interface LiveRequest {
   headers: { [propertyName: string]: string };
@@ -41,14 +37,10 @@ export interface LiveRequest {
  * Properties of the response.
  *
  * @member {string} statusCode The Response status code.
- *
  * @member {object} headers Headers of the response.
- *
  * @member {object} [body] Body of the response.
- *
  * @member {string} [encoding] The encoding of the response body when the body
  * is a buffer.
- *
  */
 export interface LiveResponse {
   statusCode: string;
@@ -64,28 +56,18 @@ export interface LiveResponse {
  * Describes the live request and response to be validated.
  *
  * @member {object} liveRequest Schema for the live request to be validated
- *
  * @member {object} [liveRequest.headers] Headers of the request.
- *
  * @member {string} [liveRequest.method] Http verb of the request. Possible
  * values include: 'GET', 'PUT', 'PATCH', 'POST', 'DELETE', 'HEAD', 'OPTIONS',
  * 'TRACE'
- *
  * @member {string} [liveRequest.url] Url of the request.
- *
  * @member {object} [liveRequest.body] Parsed body of the request as a JSON.
- *
  * @member {object} liveResponse Schema for the live response to be validated
- *
  * @member {string} [liveResponse.statusCode] The Response status code.
- *
  * @member {object} [liveResponse.headers] Headers of the response.
- *
  * @member {object} [liveResponse.body] Body of the response.
- *
  * @member {string} [liveResponse.encoding] The encoding of the response body
  * when the body is a buffer.
- *
  */
 export interface RequestResponse {
   liveRequest: LiveRequest;
@@ -102,11 +84,9 @@ export interface RequestResponse {
  * @member {string} operationId The id of the operation against which
  * validation happened. This will help find the problematic information in the
  * spec and will be useful in preparing report.
- *
  * @member {string} apiVersion Describes the api-version of the openapi
  * specification. This will help find the openapi spec corresponding to that
  * api-version and will be useful in preparing report.
- *
  */
 export interface OperationInfo {
   operationId: string;
@@ -115,137 +95,81 @@ export interface OperationInfo {
 
 /**
  * @class
- * Initializes a new instance of the LiveValidationError class.
+ * Initializes a new instance of the ValidationModel class.
  * @constructor
- * Describes the error occurred while performing validation on live
- * request/response.
+ * Properties of the validation model.
  *
- * @member {string} code The unique error code describing an error.
- *
- * @member {string} message The error message providing meaningful information.
- *
+ * @member {string} repoUrl The repo url from where to construct the swagger
+ * model.
+ * @member {string} branch The branch of the repo from where to construct the
+ * swagger model.
+ * @member {string} resourceProvider The resource provider for whom to
+ * construct the swagger model.
+ * @member {string} apiVersion The api version of the resource provider to
+ * construct the swagger model.
+ * @member {number} duration The duration in seconds for which to run
+ * validations against the model. The results of the validation will be
+ * available only after this duration has passed.
  */
-export interface LiveValidationError {
-  code: string;
-  message: string;
+export interface ValidationModel {
+  repoUrl: string;
+  branch: string;
+  resourceProvider: string;
+  apiVersion: string;
+  duration: number;
 }
 
 /**
  * @class
- * Initializes a new instance of the ErrorResponse class.
+ * Initializes a new instance of the ValidationModelCreateResponse class.
  * @constructor
- * Describes the error response for negative scenarios.
+ * Response to a Create Validation Model request.
  *
- * @member {string} [description] Description of the model property or the
- * parameter in the swagger spec that causes validation failure.
- *
- * @member {array} [params] The parameters used when validation failed
- * (z-schema construct).
- *
- * @member {array} [path] The path to the location in the document or the model
- * where the error/warning occurred.
- *
+ * @member {string} [validationId] The id of the validation model created.
  */
-export interface ErrorResponse extends LiveValidationError {
-  description?: string;
-  params?: string[];
-  path?: string[];
+export interface ValidationModelCreateResponse {
+  readonly validationId?: string;
 }
 
 /**
  * @class
- * Initializes a new instance of the ErrorWrapper class.
+ * Initializes a new instance of the OperationValidationResult class.
  * @constructor
- * Wrapper object
+ * The validation results of a specific operation of the swagger model.
  *
- * @member {array} [errors] An array of inner errors.
- *
+ * @member {string} [validationId] The id of the swagger model to which the
+ * results belong.
+ * @member {string} [operationId] The operationId to which the results belong.
+ * @member {string} [resourceProvider] The resource provider for which the
+ * swagger model was built.
+ * @member {string} [apiVersion] The API version of the resource provider for
+ * which the swagger model was built.
+ * @member {string} [modelSourceRepo] The source repo of the swagger model.
+ * @member {string} [modelSourceBranch] The source branch of the swagger model.
+ * @member {number} [operations] The number of operations (Request-Response
+ * pair) that were validated.
+ * @member {number} [successOperations] The number of operations
+ * (Request-Response pair) successfully validated.
+ * @member {number} [successRate] The percent of successful operations
+ * validated.
+ * @member {number} [successRequests] The number of requests validated
+ * successfully.
+ * @member {number} [successResponses] The number of responses validated
+ * successfully.
+ * @member {string} [validationEndtime] The datetime when the validation
+ * completed.
  */
-export interface ErrorWrapper extends ErrorResponse {
-  errors?: ErrorResponse[];
-}
-
-/**
- * @class
- * Initializes a new instance of the RequestValidationResult class.
- * @constructor
- * Describes the validation result of the live request.
- *
- * @member {boolean} [successfulRequest] Describes the status of live request
- * validation.
- *
- * @member {array} [operationInfo] The corresponding operation(s) in openapi
- * spec that was used for validating the request.
- *
- * @member {array} [errors] Provides more information about live response
- * validation.
- *
- */
-export interface RequestValidationResult {
-  readonly successfulRequest?: boolean;
-  readonly operationInfo?: OperationInfo[];
-  readonly errors?: ErrorWrapper[];
-}
-
-/**
- * @class
- * Initializes a new instance of the ResponseValidationResult class.
- * @constructor
- * Describes the validation result of the live response.
- *
- * @member {boolean} [successfulResponse] Describes the status of live response
- * validation.
- *
- * @member {array} [operationInfo] The corresponding operation(s) in openapi
- * spec that was used for validating the response.
- *
- * @member {array} [errors] Provides more information about live response
- * validation.
- *
- */
-export interface ResponseValidationResult {
-  readonly successfulResponse?: boolean;
-  readonly operationInfo?: OperationInfo[];
-  readonly errors?: ErrorWrapper[];
-}
-
-/**
- * @class
- * Initializes a new instance of the ValidationResult class.
- * @constructor
- * Describes the validation result of the live request, response validation.
- *
- * @member {object} [requestValidationResult] Describes the validation result
- * of the live request.
- *
- * @member {boolean} [requestValidationResult.successfulRequest] Describes the
- * status of live request validation.
- *
- * @member {array} [requestValidationResult.operationInfo] The corresponding
- * operation(s) in openapi spec that was used for validating the request.
- *
- * @member {array} [requestValidationResult.errors] Provides more information
- * about live response validation.
- *
- * @member {object} [responseValidationResult] Describes the validation result
- * of the live response.
- *
- * @member {boolean} [responseValidationResult.successfulResponse] Describes
- * the status of live response validation.
- *
- * @member {array} [responseValidationResult.operationInfo] The corresponding
- * operation(s) in openapi spec that was used for validating the response.
- *
- * @member {array} [responseValidationResult.errors] Provides more information
- * about live response validation.
- *
- * @member {array} [errors] Provides more information about validation for
- * scenarios where no potential operation was found or multiple operations were
- * found or the input was invalid.
- *
- */
-export interface ValidationResult {
-  readonly requestValidationResult?: RequestValidationResult;
-  readonly responseValidationResult?: ResponseValidationResult;
-  readonly errors?: ErrorWrapper[];
+export interface OperationValidationResult {
+  readonly validationId?: string;
+  readonly operationId?: string;
+  readonly resourceProvider?: string;
+  readonly apiVersion?: string;
+  readonly modelSourceRepo?: string;
+  readonly modelSourceBranch?: string;
+  readonly operations?: number;
+  readonly successOperations?: number;
+  readonly successRate?: number;
+  readonly successRequests?: number;
+  readonly successResponses?: number;
+  readonly validationEndtime?: string;
 }

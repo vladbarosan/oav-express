@@ -21,24 +21,17 @@ const models = require('./models');
 const operations = require('./operations');
 
 
-/**
- * @class
- * Initializes a new instance of the LiveRequestValidationClient class.
- * @constructor
- *
- * @param {string} [baseUri] - The base URI of the service.
- *
- * @param {object} [options] - The parameter options
- *
- * @param {Array} [options.filters] - Filters to be added to the request pipeline
- *
- * @param {object} [options.requestOptions] - Options for the underlying request object
- * {@link https://github.com/request/request#requestoptions-callback Options doc}
- *
- * @param {boolean} [options.noRetryPolicy] - If set to true, turn off default retry policy
- *
- */
+/** Class representing a LiveRequestValidationClient. */
 class LiveRequestValidationClient extends ServiceClient {
+  /**
+   * Create a LiveRequestValidationClient.
+   * @param {string} [baseUri] - The base URI of the service.
+   * @param {object} [options] - The parameter options
+   * @param {Array} [options.filters] - Filters to be added to the request pipeline
+   * @param {object} [options.requestOptions] - Options for the underlying request object
+   * {@link https://github.com/request/request#requestoptions-callback Options doc}
+   * @param {boolean} [options.noRetryPolicy] - If set to true, turn off default retry policy
+   */
   constructor(baseUri, options) {
 
     if (!options) options = {};
@@ -47,7 +40,7 @@ class LiveRequestValidationClient extends ServiceClient {
 
     this.baseUri = baseUri;
     if (!this.baseUri) {
-      this.baseUri = 'http://localhost:1337';
+      this.baseUri = 'http://localhost:8080';
     }
 
     let packageInfo = this.getPackageJsonInfo(__dirname);

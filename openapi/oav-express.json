@@ -5,7 +5,7 @@
   "title": "LiveRequestValidationClient",
   "description": "Live request validation client"
  },
- "host": "localhost:1337",
+ "host": "localhost:8080",
  "schemes": [
   "http",
   "https"
@@ -61,7 +61,7 @@
      "200": {
       "description": "Swagger Model has been created successfully.",
       "schema": {
-       "$ref": "#/definitions/CreateValidationModelResponse"
+       "$ref": "#/definitions/ValidationModelCreateResponse"
       }
      },
      "default": {
@@ -254,7 +254,7 @@
    ],
    "description": "Properties of the validation model."
   },
-  "CreateValidationModelResponse": {
+  "ValidationModelCreateResponse": {
    "description": "Response to a Create Validation Model request.",
    "type": "object",
    "properties": {

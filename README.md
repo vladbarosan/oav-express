@@ -1,7 +1,7 @@
 # oav-express web service
 
 ### Requirements
-- **node version > 8.6**
+- **node version > 8.9**
 
 You can install the latest stable release of node.js from [here](https://nodejs.org/en/download/). For a machine with a linux flavored OS, please follow the node.js installation instructions over [here](https://nodejs.org/en/download/package-manager/)
 

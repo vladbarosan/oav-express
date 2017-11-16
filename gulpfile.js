@@ -20,7 +20,7 @@ const mappings = {
   }
 };
 
-const defaultAutoRestVersion = '1.0.1-20170417-2300-nightly';
+const defaultAutoRestVersion = '2.0.4166';
 var usingAutoRestVersion;
 const specRoot = args['spec-root'] || '.';
 const project = args['project'] || 'testclient';

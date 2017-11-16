@@ -14,7 +14,8 @@ const msRest = require('ms-rest');
 const WebResource = msRest.WebResource;
 
 /**
- * Validates the request and response against the operatswagger specification
+ * Validates the request and response against the all the swagger models
+ * registered.
  *
  * @param {object} requestResponse The request and corresponding response to
  * validate.
@@ -58,8 +59,7 @@ const WebResource = msRest.WebResource;
  *
  *                      {Error}  err        - The Error object if an error occurred, null otherwise.
  *
- *                      {object} [result]   - The deserialized result object if an error did not occur.
- *                      See {@link ValidationResult} for more information.
+ *                      {null} [result]   - The deserialized result object if an error did not occur.
  *
  *                      {object} [request]  - The HTTP Request object if an error did not occur.
  *
@@ -91,9 +91,10 @@ function _validateRequestResponse(requestResponse, options, callback) {
   // Create HTTP transport objects
   let httpRequest = new WebResource();
   httpRequest.method = 'POST';
-  httpRequest.headers = {};
   httpRequest.url = requestUrl;
+  httpRequest.headers = {};
   // Set Headers
+  httpRequest.headers['Content-Type'] = 'application/json; charset=utf-8';
   if(options) {
     for(let headerName in options['customHeaders']) {
       if (options['customHeaders'].hasOwnProperty(headerName)) {
@@ -101,7 +102,6 @@ function _validateRequestResponse(requestResponse, options, callback) {
       }
     }
   }
-  httpRequest.headers['Content-Type'] = 'application/json; charset=utf-8';
   // Serialize Request
   let requestContent = null;
   let requestModel = null;
@@ -138,9 +138,134 @@ function _validateRequestResponse(requestResponse, options, callback) {
           error.code = internalError ? internalError.code : parsedErrorResponse.code;
           error.message = internalError ? internalError.message : parsedErrorResponse.message;
         }
-        if (parsedErrorResponse !== null && parsedErrorResponse !== undefined) {
-          let resultMapper = new client.models['ValidationResult']().mapper();
-          error.body = client.deserialize(resultMapper, parsedErrorResponse, 'error.body');
+      } catch (defaultError) {
+        error.message = `Error "${defaultError.message}" occurred in deserializing the responseBody ` +
+                         `- "${responseBody}" for the default response.`;
+        return callback(error);
+      }
+      return callback(error);
+    }
+    // Create Result
+    let result = null;
+    if (responseBody === '') responseBody = null;
+
+    return callback(null, result, httpRequest, response);
+  });
+}
+
+/**
+ * Create a new swagger model to do validations against.
+ *
+ * @param {object} validationModel The parameters for the swagger model to
+ * create.
+ *
+ * @param {string} validationModel.repoUrl The repo url from where to construct
+ * the swagger model.
+ *
+ * @param {string} validationModel.branch The branch of the repo from where to
+ * construct the swagger model.
+ *
+ * @param {string} validationModel.resourceProvider The resource provider for
+ * whom to construct the swagger model.
+ *
+ * @param {string} validationModel.apiVersion The api version of the resource
+ * provider to construct the swagger model.
+ *
+ * @param {number} validationModel.duration The duration in seconds for which
+ * to run validations against the model. The results of the validation will be
+ * available only after this duration has passed.
+ *
+ * @param {object} [options] Optional Parameters.
+ *
+ * @param {object} [options.customHeaders] Headers that will be added to the
+ * request
+ *
+ * @param {function} callback - The callback.
+ *
+ * @returns {function} callback(err, result, request, response)
+ *
+ *                      {Error}  err        - The Error object if an error occurred, null otherwise.
+ *
+ *                      {object} [result]   - The deserialized result object if an error did not occur.
+ *                      See {@link ValidationModelCreateResponse} for more
+ *                      information.
+ *
+ *                      {object} [request]  - The HTTP Request object if an error did not occur.
+ *
+ *                      {stream} [response] - The HTTP Response stream if an error did not occur.
+ */
+function _createValidationModel(validationModel, options, callback) {
+   /* jshint validthis: true */
+  let client = this.client;
+  if(!callback && typeof options === 'function') {
+    callback = options;
+    options = null;
+  }
+  if (!callback) {
+    throw new Error('callback cannot be null.');
+  }
+  // Validate
+  try {
+    if (validationModel === null || validationModel === undefined) {
+      throw new Error('validationModel cannot be null or undefined.');
+    }
+  } catch (error) {
+    return callback(error);
+  }
+
+  // Construct URL
+  let baseUrl = this.client.baseUri;
+  let requestUrl = baseUrl + (baseUrl.endsWith('/') ? '' : '/') + 'validations';
+
+  // Create HTTP transport objects
+  let httpRequest = new WebResource();
+  httpRequest.method = 'POST';
+  httpRequest.url = requestUrl;
+  httpRequest.headers = {};
+  // Set Headers
+  httpRequest.headers['Content-Type'] = 'application/json; charset=utf-8';
+  if(options) {
+    for(let headerName in options['customHeaders']) {
+      if (options['customHeaders'].hasOwnProperty(headerName)) {
+        httpRequest.headers[headerName] = options['customHeaders'][headerName];
+      }
+    }
+  }
+  // Serialize Request
+  let requestContent = null;
+  let requestModel = null;
+  try {
+    if (validationModel !== null && validationModel !== undefined) {
+      let requestModelMapper = new client.models['ValidationModel']().mapper();
+      requestModel = client.serialize(requestModelMapper, validationModel, 'validationModel');
+      requestContent = JSON.stringify(requestModel);
+    }
+  } catch (error) {
+    let serializationError = new Error(`Error "${error.message}" occurred in serializing the ` +
+        `payload - ${JSON.stringify(validationModel, null, 2)}.`);
+    return callback(serializationError);
+  }
+  httpRequest.body = requestContent;
+  // Send Request
+  return client.pipeline(httpRequest, (err, response, responseBody) => {
+    if (err) {
+      return callback(err);
+    }
+    let statusCode = response.statusCode;
+    if (statusCode !== 200) {
+      let error = new Error(responseBody);
+      error.statusCode = response.statusCode;
+      error.request = msRest.stripRequest(httpRequest);
+      error.response = msRest.stripResponse(response);
+      if (responseBody === '') responseBody = null;
+      let parsedErrorResponse;
+      try {
+        parsedErrorResponse = JSON.parse(responseBody);
+        if (parsedErrorResponse) {
+          let internalError = null;
+          if (parsedErrorResponse.error) internalError = parsedErrorResponse.error;
+          error.code = internalError ? internalError.code : parsedErrorResponse.code;
+          error.message = internalError ? internalError.message : parsedErrorResponse.message;
         }
       } catch (defaultError) {
         error.message = `Error "${defaultError.message}" occurred in deserializing the responseBody ` +
@@ -159,7 +284,7 @@ function _validateRequestResponse(requestResponse, options, callback) {
         parsedResponse = JSON.parse(responseBody);
         result = JSON.parse(responseBody);
         if (parsedResponse !== null && parsedResponse !== undefined) {
-          let resultMapper = new client.models['ValidationResult']().mapper();
+          let resultMapper = new client.models['ValidationModelCreateResponse']().mapper();
           result = client.deserialize(resultMapper, parsedResponse, 'result');
         }
       } catch (error) {
@@ -175,23 +300,155 @@ function _validateRequestResponse(requestResponse, options, callback) {
 }
 
 /**
- * @class
- * Oav
- * __NOTE__: An instance of this class is automatically created for an
- * instance of the LiveRequestValidationClient.
- * Initializes a new instance of the Oav class.
- * @constructor
+ * Gets the result of a validation.
  *
- * @param {LiveRequestValidationClient} client Reference to the service client.
+ * @param {string} validationId The validation model Id.
+ *
+ * @param {object} [options] Optional Parameters.
+ *
+ * @param {object} [options.customHeaders] Headers that will be added to the
+ * request
+ *
+ * @param {function} callback - The callback.
+ *
+ * @returns {function} callback(err, result, request, response)
+ *
+ *                      {Error}  err        - The Error object if an error occurred, null otherwise.
+ *
+ *                      {array} [result]   - The deserialized result object if an error did not occur.
+ *
+ *                      {object} [request]  - The HTTP Request object if an error did not occur.
+ *
+ *                      {stream} [response] - The HTTP Response stream if an error did not occur.
  */
+function _getValidationResult(validationId, options, callback) {
+   /* jshint validthis: true */
+  let client = this.client;
+  if(!callback && typeof options === 'function') {
+    callback = options;
+    options = null;
+  }
+  if (!callback) {
+    throw new Error('callback cannot be null.');
+  }
+  // Validate
+  try {
+    if (validationId === null || validationId === undefined || typeof validationId.valueOf() !== 'string') {
+      throw new Error('validationId cannot be null or undefined and it must be of type string.');
+    }
+    if (validationId !== null && validationId !== undefined) {
+      if (validationId.length < 1)
+      {
+        throw new Error('"validationId" should satisfy the constraint - "MinLength": 1');
+      }
+    }
+  } catch (error) {
+    return callback(error);
+  }
+
+  // Construct URL
+  let baseUrl = this.client.baseUri;
+  let requestUrl = baseUrl + (baseUrl.endsWith('/') ? '' : '/') + 'validations/{validationId}';
+  requestUrl = requestUrl.replace('{validationId}', encodeURIComponent(validationId));
+
+  // Create HTTP transport objects
+  let httpRequest = new WebResource();
+  httpRequest.method = 'GET';
+  httpRequest.url = requestUrl;
+  httpRequest.headers = {};
+  // Set Headers
+  httpRequest.headers['Content-Type'] = 'application/json; charset=utf-8';
+  if(options) {
+    for(let headerName in options['customHeaders']) {
+      if (options['customHeaders'].hasOwnProperty(headerName)) {
+        httpRequest.headers[headerName] = options['customHeaders'][headerName];
+      }
+    }
+  }
+  httpRequest.body = null;
+  // Send Request
+  return client.pipeline(httpRequest, (err, response, responseBody) => {
+    if (err) {
+      return callback(err);
+    }
+    let statusCode = response.statusCode;
+    if (statusCode !== 200) {
+      let error = new Error(responseBody);
+      error.statusCode = response.statusCode;
+      error.request = msRest.stripRequest(httpRequest);
+      error.response = msRest.stripResponse(response);
+      if (responseBody === '') responseBody = null;
+      let parsedErrorResponse;
+      try {
+        parsedErrorResponse = JSON.parse(responseBody);
+        if (parsedErrorResponse) {
+          let internalError = null;
+          if (parsedErrorResponse.error) internalError = parsedErrorResponse.error;
+          error.code = internalError ? internalError.code : parsedErrorResponse.code;
+          error.message = internalError ? internalError.message : parsedErrorResponse.message;
+        }
+      } catch (defaultError) {
+        error.message = `Error "${defaultError.message}" occurred in deserializing the responseBody ` +
+                         `- "${responseBody}" for the default response.`;
+        return callback(error);
+      }
+      return callback(error);
+    }
+    // Create Result
+    let result = null;
+    if (responseBody === '') responseBody = null;
+    // Deserialize Response
+    if (statusCode === 200) {
+      let parsedResponse = null;
+      try {
+        parsedResponse = JSON.parse(responseBody);
+        result = JSON.parse(responseBody);
+        if (parsedResponse !== null && parsedResponse !== undefined) {
+          let resultMapper = {
+            required: false,
+            serializedName: 'parsedResponse',
+            type: {
+              name: 'Sequence',
+              element: {
+                  required: false,
+                  serializedName: 'OperationValidationResultElementType',
+                  type: {
+                    name: 'Composite',
+                    className: 'OperationValidationResult'
+                  }
+              }
+            }
+          };
+          result = client.deserialize(resultMapper, parsedResponse, 'result');
+        }
+      } catch (error) {
+        let deserializationError = new Error(`Error ${error} occurred in deserializing the responseBody - ${responseBody}`);
+        deserializationError.request = msRest.stripRequest(httpRequest);
+        deserializationError.response = msRest.stripResponse(response);
+        return callback(deserializationError);
+      }
+    }
+
+    return callback(null, result, httpRequest, response);
+  });
+}
+
+/** Class representing a Oav. */
 class Oav {
+  /**
+   * Create a Oav.
+   * @param {LiveRequestValidationClient} client Reference to the service client.
+   */
   constructor(client) {
     this.client = client;
     this._validateRequestResponse = _validateRequestResponse;
+    this._createValidationModel = _createValidationModel;
+    this._getValidationResult = _getValidationResult;
   }
 
   /**
-   * Validates the request and response against the operatswagger specification
+   * Validates the request and response against the all the swagger models
+   * registered.
    *
    * @param {object} requestResponse The request and corresponding response to
    * validate.
@@ -231,7 +488,7 @@ class Oav {
    *
    * @returns {Promise} A promise is returned
    *
-   * @resolve {HttpOperationResponse<ValidationResult>} - The deserialized result object.
+   * @resolve {HttpOperationResponse<null>} - The deserialized result object.
    *
    * @reject {Error} - The error object.
    */
@@ -250,7 +507,8 @@ class Oav {
   }
 
   /**
-   * Validates the request and response against the operatswagger specification
+   * Validates the request and response against the all the swagger models
+   * registered.
    *
    * @param {object} requestResponse The request and corresponding response to
    * validate.
@@ -295,7 +553,7 @@ class Oav {
    *
    * {Promise} A promise is returned
    *
-   *                      @resolve {ValidationResult} - The deserialized result object.
+   *                      @resolve {null} - The deserialized result object.
    *
    *                      @reject {Error} - The error object.
    *
@@ -303,8 +561,7 @@ class Oav {
    *
    *                      {Error}  err        - The Error object if an error occurred, null otherwise.
    *
-   *                      {object} [result]   - The deserialized result object if an error did not occur.
-   *                      See {@link ValidationResult} for more information.
+   *                      {null} [result]   - The deserialized result object if an error did not occur.
    *
    *                      {object} [request]  - The HTTP Request object if an error did not occur.
    *
@@ -327,6 +584,204 @@ class Oav {
       });
     } else {
       return self._validateRequestResponse(requestResponse, options, optionalCallback);
+    }
+  }
+
+  /**
+   * Create a new swagger model to do validations against.
+   *
+   * @param {object} validationModel The parameters for the swagger model to
+   * create.
+   *
+   * @param {string} validationModel.repoUrl The repo url from where to construct
+   * the swagger model.
+   *
+   * @param {string} validationModel.branch The branch of the repo from where to
+   * construct the swagger model.
+   *
+   * @param {string} validationModel.resourceProvider The resource provider for
+   * whom to construct the swagger model.
+   *
+   * @param {string} validationModel.apiVersion The api version of the resource
+   * provider to construct the swagger model.
+   *
+   * @param {number} validationModel.duration The duration in seconds for which
+   * to run validations against the model. The results of the validation will be
+   * available only after this duration has passed.
+   *
+   * @param {object} [options] Optional Parameters.
+   *
+   * @param {object} [options.customHeaders] Headers that will be added to the
+   * request
+   *
+   * @returns {Promise} A promise is returned
+   *
+   * @resolve {HttpOperationResponse<ValidationModelCreateResponse>} - The deserialized result object.
+   *
+   * @reject {Error} - The error object.
+   */
+  createValidationModelWithHttpOperationResponse(validationModel, options) {
+    let client = this.client;
+    let self = this;
+    return new Promise((resolve, reject) => {
+      self._createValidationModel(validationModel, options, (err, result, request, response) => {
+        let httpOperationResponse = new msRest.HttpOperationResponse(request, response);
+        httpOperationResponse.body = result;
+        if (err) { reject(err); }
+        else { resolve(httpOperationResponse); }
+        return;
+      });
+    });
+  }
+
+  /**
+   * Create a new swagger model to do validations against.
+   *
+   * @param {object} validationModel The parameters for the swagger model to
+   * create.
+   *
+   * @param {string} validationModel.repoUrl The repo url from where to construct
+   * the swagger model.
+   *
+   * @param {string} validationModel.branch The branch of the repo from where to
+   * construct the swagger model.
+   *
+   * @param {string} validationModel.resourceProvider The resource provider for
+   * whom to construct the swagger model.
+   *
+   * @param {string} validationModel.apiVersion The api version of the resource
+   * provider to construct the swagger model.
+   *
+   * @param {number} validationModel.duration The duration in seconds for which
+   * to run validations against the model. The results of the validation will be
+   * available only after this duration has passed.
+   *
+   * @param {object} [options] Optional Parameters.
+   *
+   * @param {object} [options.customHeaders] Headers that will be added to the
+   * request
+   *
+   * @param {function} [optionalCallback] - The optional callback.
+   *
+   * @returns {function|Promise} If a callback was passed as the last parameter
+   * then it returns the callback else returns a Promise.
+   *
+   * {Promise} A promise is returned
+   *
+   *                      @resolve {ValidationModelCreateResponse} - The deserialized result object.
+   *
+   *                      @reject {Error} - The error object.
+   *
+   * {function} optionalCallback(err, result, request, response)
+   *
+   *                      {Error}  err        - The Error object if an error occurred, null otherwise.
+   *
+   *                      {object} [result]   - The deserialized result object if an error did not occur.
+   *                      See {@link ValidationModelCreateResponse} for more
+   *                      information.
+   *
+   *                      {object} [request]  - The HTTP Request object if an error did not occur.
+   *
+   *                      {stream} [response] - The HTTP Response stream if an error did not occur.
+   */
+  createValidationModel(validationModel, options, optionalCallback) {
+    let client = this.client;
+    let self = this;
+    if (!optionalCallback && typeof options === 'function') {
+      optionalCallback = options;
+      options = null;
+    }
+    if (!optionalCallback) {
+      return new Promise((resolve, reject) => {
+        self._createValidationModel(validationModel, options, (err, result, request, response) => {
+          if (err) { reject(err); }
+          else { resolve(result); }
+          return;
+        });
+      });
+    } else {
+      return self._createValidationModel(validationModel, options, optionalCallback);
+    }
+  }
+
+  /**
+   * Gets the result of a validation.
+   *
+   * @param {string} validationId The validation model Id.
+   *
+   * @param {object} [options] Optional Parameters.
+   *
+   * @param {object} [options.customHeaders] Headers that will be added to the
+   * request
+   *
+   * @returns {Promise} A promise is returned
+   *
+   * @resolve {HttpOperationResponse<Array>} - The deserialized result object.
+   *
+   * @reject {Error} - The error object.
+   */
+  getValidationResultWithHttpOperationResponse(validationId, options) {
+    let client = this.client;
+    let self = this;
+    return new Promise((resolve, reject) => {
+      self._getValidationResult(validationId, options, (err, result, request, response) => {
+        let httpOperationResponse = new msRest.HttpOperationResponse(request, response);
+        httpOperationResponse.body = result;
+        if (err) { reject(err); }
+        else { resolve(httpOperationResponse); }
+        return;
+      });
+    });
+  }
+
+  /**
+   * Gets the result of a validation.
+   *
+   * @param {string} validationId The validation model Id.
+   *
+   * @param {object} [options] Optional Parameters.
+   *
+   * @param {object} [options.customHeaders] Headers that will be added to the
+   * request
+   *
+   * @param {function} [optionalCallback] - The optional callback.
+   *
+   * @returns {function|Promise} If a callback was passed as the last parameter
+   * then it returns the callback else returns a Promise.
+   *
+   * {Promise} A promise is returned
+   *
+   *                      @resolve {Array} - The deserialized result object.
+   *
+   *                      @reject {Error} - The error object.
+   *
+   * {function} optionalCallback(err, result, request, response)
+   *
+   *                      {Error}  err        - The Error object if an error occurred, null otherwise.
+   *
+   *                      {array} [result]   - The deserialized result object if an error did not occur.
+   *
+   *                      {object} [request]  - The HTTP Request object if an error did not occur.
+   *
+   *                      {stream} [response] - The HTTP Response stream if an error did not occur.
+   */
+  getValidationResult(validationId, options, optionalCallback) {
+    let client = this.client;
+    let self = this;
+    if (!optionalCallback && typeof options === 'function') {
+      optionalCallback = options;
+      options = null;
+    }
+    if (!optionalCallback) {
+      return new Promise((resolve, reject) => {
+        self._getValidationResult(validationId, options, (err, result, request, response) => {
+          if (err) { reject(err); }
+          else { resolve(result); }
+          return;
+        });
+      });
+    } else {
+      return self._getValidationResult(validationId, options, optionalCallback);
     }
   }
 
