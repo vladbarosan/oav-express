@@ -113,7 +113,7 @@ app.post('/validations', (req, res) => {
   };
   const worker = cluster.fork(workerEnv);
 
-  return res.status(200).send({ 'validationId': validationId });
+  return res.status(200).send({ validationId: validationId });
 });
 
 // Get results for a specific validation model that was created
@@ -128,6 +128,11 @@ app.get('/validations/:validationId', (req, res) => {
     if (error) {
       return res.status(400).send({ error: error.message });
     }
+
+    if (result.entries.length === 0) {
+      return res.status(404).send({ error: 'No validation results exist for the specified validation Id. Please retry later.' });
+    }
+
     let entries = result.entries;
 
     // Result comes in the form  {Property: {_: value; $: type}}. Transform to {Property: Value}
@@ -161,4 +166,3 @@ server = app.listen(port, () => {
   console.log(`oav - express app listening at http://${host}:${port}`);
   return server;
 });
-

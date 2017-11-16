@@ -20,9 +20,8 @@ describe('oav-express', () => {
     done();
   });
   describe('basic test', () => {
-    it('should should respond to /', (done) => {
-      let url = 'http://localhost:8080/';
-      request.get(url, (err, response, responseBody) => {
+    it('should respond to /', (done) => {
+      request.get(baseUri, (err, response, responseBody) => {
         should.not.exist(err);
         should.exist(response);
         should.exist(responseBody);
@@ -33,7 +32,7 @@ describe('oav-express', () => {
     });
 
     it('should should respond to /validate for successful validation', (done) => {
-      let url = 'http://localhost:8080/validate';
+      let url = `${baseUri}/validate`;
       const requestBody = {
         "liveRequest": {
           "rawResponse": false,
@@ -74,117 +73,83 @@ describe('oav-express', () => {
         done();
       });
     });
+  });
+  describe('validation model test suite', () => {
+    it('should respond with a validationId to /validations', (done) => {
+      let url = `${baseUri}/validations`;
+      let durationInSeconds = 5;
 
-    it('should should respond to /validate for validation with errors', (done) => {
-      let url = 'http://localhost:8080/validate';
-      let requestBody = {
-        "liveRequest": {
-          "rawResponse": false,
-          "queryString": {},
-          "url": "https://management.azure.com/subscriptions/subcriptionID/providers/Microsoft.Storage/storageAccounts?api-version=2016-01-01",
-          "method": "GET",
-          "headers": {
-            "Content-Type": "application/json; charset=utf-8",
-            "accept-language": "en-US",
-            "x-ms-client-request-id": "6d5341d4-f7ce-4a50-a9b7-bf1ae6fbcfba"
-          },
-          "body": null
-        },
-        "liveResponse": {
-          "statusCode": "200",
-          "body": {
-            "value": [
-              {
-                "id": "/subscriptions/<AZURE_SUBSCRIPTION_ID>/resourceGroups/vishrutrg/providers/Microsoft.Storage/storageAccounts/vishrutrg",
-                "kind": "Storage",
-                "location": "westus",
-                "name": "vishrutrg",
-                "properties": {
-                  "creationTime": "2016-03-18T01:58:17.4992360Z",
-                  "primaryEndpoints": {
-                    "blob": "https://vishrutrg.blob.core.windows.net/",
-                    "file": "https://vishrutrg.file.core.windows.net/",
-                    "queue": "https://vishrutrg.queue.core.windows.net/",
-                    "table": "https://vishrutrg.table.core.windows.net/"
-                  },
-                  "primaryLocation": "westus",
-                  "provisioningState": "Succeeded",
-                  "statusOfPrimary": "available"
-                },
-                "sku": {
-                  "name": "Standard_LRS",
-                  "tier": "Standard"
-                },
-                "tags": {},
-                "type": "Microsoft.Storage/storageAccounts"
-              },
-              {
-                "id": "/subscriptions/<AZURE_SUBSCRIPTION_ID>/resourceGroups/vishrutrg/providers/Microsoft.Storage/storageAccounts/vishrutsa",
-                "kind": "Storage",
-                "location": "westus",
-                "name": "vishrutsa",
-                "properties": {
-                  "creationTime": "2016-03-16T17:21:57.7793489Z",
-                  "primaryEndpoints": {
-                    "blob": "https://vishrutsa.blob.core.windows.net/",
-                    "file": "https://vishrutsa.file.core.windows.net/",
-                    "queue": "https://vishrutsa.queue.core.windows.net/",
-                    "table": "https://vishrutsa.table.core.windows.net/"
-                  },
-                  "primaryLocation": "westus",
-                  "provisioningState": "Succeeded",
-                  "statusOfPrimary": "available"
-                },
-                "sku": {
-                  "name": "Standard_LRS",
-                  "tier": "Standard"
-                },
-                "tags": {},
-                "type": "Microsoft.Storage/storageAccounts"
-              },
-              {
-                "id": "/subscriptions/<AZURE_SUBSCRIPTION_ID>/resourceGroups/vishrutrg/providers/Microsoft.Storage/storageAccounts/vishrutsa1",
-                "kind": "Storage",
-                "location": "westus",
-                "name": "vishrutsa1",
-                "properties": {
-                  "creationTime": "2016-04-21T20:49:38.2606433Z",
-                  "primaryEndpoints": {
-                    "blob": "https://vishrutsa1.blob.core.windows.net/",
-                    "file": "https://vishrutsa1.file.core.windows.net/",
-                    "queue": "https://vishrutsa1.queue.core.windows.net/",
-                    "table": "https://vishrutsa1.table.core.windows.net/"
-                  },
-                  "primaryLocation": "westus",
-                  "provisioningState": "Succeeded",
-                  "statusOfPrimary": "available"
-                },
-                "sku": {
-                  "name": "Standard_LRS",
-                  "tier": "Standard"
-                },
-                "tags": {},
-                "type": "Microsoft.Storage/storageAccounts"
-              }
-            ]
-          },
-          "headers": {
-            "content-type": "application/json"
-          }
-        }
-      };
+      const requestBody = {
+        repoUrl: "https://github.com/vladbarosan/sample-openapi-specs",
+        branch: "master",
+        resourceProvider: "Microsoft.Cache",
+        apiVersion: "2017-02-01",
+        duration: durationInSeconds
+      }
+
       const bodyAsString = JSON.stringify(requestBody);
       let requestOptions = {
-        body: bodyAsString,
-        headers: {
+        body: bodyAsString, headers: {
           'Content-type': 'application/json'
         }
       };
+
       request.post(url, requestOptions, (err, response, responseBody) => {
         should.not.exist(err);
         should.exist(response);
         should.exist(responseBody);
         response.statusCode.should.equal(200);
+        let validationId = JSON.parse(responseBody).validationId;
+        should.exist(validationId);
+        done();
+      });
+    });
+
+    it('should respond with validation results to existing /validations/{validationId}', (done) => {
+      let url = `${baseUri}/validations`;
+      let durationInSeconds = 5;
+
+      const requestBody = {
+        repoUrl: "https://github.com/vladbarosan/sample-openapi-specs",
+        branch: "master",
+        resourceProvider: "Microsoft.Cache",
+        apiVersion: "2017-02-01",
+        duration: durationInSeconds
+      }
+
+      const bodyAsString = JSON.stringify(requestBody);
+      let requestOptions = {
+        body: bodyAsString, headers: {
+          'Content-type': 'application/json'
+        }
+      };
+
+      let validationId;
+      request.post(url, requestOptions, (err, response, responseBody) => {
+        response.statusCode.should.equal(200);
+        validationId = JSON.parse(responseBody).validationId;
+
+        setTimeout(() => {
+          url = `${baseUri}/validations/${validationId}`;
+          request.get(url, (err, response, responseBody) => {
+            should.not.exist(err);
+            should.exist(response);
+            should.exist(responseBody);
+            response.statusCode.should.equal(200);
+            done();
+          });
+        }, (durationInSeconds + 5) * 1000);
+      });
+    });
+
+    it('should respond with error 404 to non-existent /validations/{validationId}', (done) => {
+      let url = 'http://localhost:8080/validations/1';
+
+      request.get(url, (err, response, responseBody) => {
+        should.exist(response);
+        should.exist(responseBody);
+        should.exist(JSON.parse(responseBody).error);
+        response.statusCode.should.equal(404);
         done();
       });
     });
