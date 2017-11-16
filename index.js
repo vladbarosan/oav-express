@@ -96,7 +96,8 @@ app.post('/validations', (req, res) => {
     return res.status(429).send({ error: 'More live validations are running then the service currently supports. Try again later.' });
   }
 
-  let durationInSeconds = Number.parseInt(req.body.duration);
+  let modelParameters = req.body.validationModel;
+  let durationInSeconds = Number.parseInt(modelParameters.duration);
 
   if (isNaN(durationInSeconds) || durationInSeconds > 60 * 60) {
     return res.status(400).send({ error: 'Duration is not a number or it is longer than maximum allowed value of 60 minutes.' });
@@ -104,11 +105,11 @@ app.post('/validations', (req, res) => {
 
   const validationId = uuidv4();
   const workerEnv = {
-    repoUrl: req.body.repoUrl,
-    branch: req.body.branch,
-    resourceProvider: req.body.resourceProvider,
-    apiVersion: req.body.apiVersion,
-    duration: req.body.duration,
+    repoUrl: modelParameters.repoUrl,
+    branch: modelParameters.branch,
+    resourceProvider: modelParameters.resourceProvider,
+    apiVersion: modelParameters.apiVersion,
+    duration: modelParameters.duration,
     validationId: validationId,
   };
   const worker = cluster.fork(workerEnv);

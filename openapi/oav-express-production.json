@@ -1,296 +1,335 @@
 {
-  "swagger": "2.0",
-  "info": {
-    "version": "1.0",
-    "title": "LiveRequestValidationClient",
-    "description": "Live request validation client"
+ "swagger": "2.0",
+ "info": {
+  "version": "1.0",
+  "title": "LiveRequestValidationClient",
+  "description": "Live request validation client"
+ },
+ "host": "oavv2.azurewebsites.net",
+ "schemes": [
+  "http",
+  "https"
+ ],
+ "paths": {
+  "/validate": {
+   "post": {
+    "operationId": "Oav_ValidateRequestResponse",
+    "description": "Validates the request and response against the all the swagger models registered.",
+    "parameters": [
+     {
+      "name": "requestResponse",
+      "in": "body",
+      "required": true,
+      "schema": {
+       "$ref": "#/definitions/RequestResponse"
+      },
+      "description": "The request and corresponding response to validate."
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Request was queued for processing successfully."
+     },
+     "default": {
+      "description": "Describes the error response for failing to queue the request."
+     }
+    },
+    "produces": [
+     "application/json"
+    ],
+    "consumes": [
+     "application/json"
+    ]
+   }
   },
-  "host": "oav.azurewebsites.net",
-  "schemes": [
-    "http",
-    "https"
-  ],
-  "consumes": [
-    "application/json"
-  ],
-  "produces": [
-    "application/json"
-  ],
-  "paths": {
-    "/validate": {
-      "post": {
-        "operationId": "Oav_ValidateRequestResponse",
-        "description": "Validates the request and response against the operatswagger specification",
-        "parameters": [
-          {
-            "name": "requestResponse",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/RequestResponse"
-            },
-            "description": "The request and corresponding response to validate."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Describes the validation result of the live request and response.",
-            "schema": {
-              "$ref": "#/definitions/ValidationResult"
-            }
-          },
-          "default": {
-            "description": "Describes the error response for negative scenarios. Currently we return the same schema as 200. The errors array will not be empty.",
-            "schema": {
-              "$ref": "#/definitions/ValidationResult"
-            }
-          }
-        }
+  "/validations": {
+   "post": {
+    "operationId": "Oav_CreateValidationModel",
+    "description": "Create a new swagger model to do validations against.",
+    "parameters": [
+     {
+      "name": "validationModel",
+      "in": "body",
+      "required": true,
+      "schema": {
+       "$ref": "#/definitions/ValidationModel"
+      },
+      "description": "The parameters for the swagger model to create."
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Swagger Model has been created successfully.",
+      "schema": {
+       "$ref": "#/definitions/CreateValidationModelResponse"
       }
-    }
+     },
+     "default": {
+      "description": "Describes the error response for failing to create the validation model."
+     }
+    },
+    "produces": [
+     "application/json"
+    ],
+    "consumes": [
+     "application/json"
+    ]
+   }
   },
-  "definitions": {
-    "RequestResponse": {
-      "properties": {
-        "liveRequest": {
-          "description": "Schema for the live request to be validated",
-          "$ref": "#/definitions/LiveRequest"
-        },
-        "liveResponse": {
-          "description": "Schema for the live response to be validated",
-          "$ref": "#/definitions/LiveResponse"
-        }
-      },
-      "required": [
-        "liveRequest",
-        "liveResponse"
-      ],
-      "description": "Describes the live request and response to be validated."
-    },
-    "LiveRequest": {
-      "properties": {
-        "headers": {
-          "description": "Headers of the request.",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        },
-        "method": {
-          "description": "Http verb of the request.",
-          "type": "string",
-          "enum": [
-            "GET",
-            "PUT",
-            "PATCH",
-            "POST",
-            "DELETE",
-            "HEAD",
-            "OPTIONS",
-            "TRACE"
-          ]
-        },
-        "url": {
-          "description": "Url of the request.",
-          "type": "string"
-        },
-        "body": {
-          "description": "Parsed body of the request as a JSON.",
-          "type": "object"
-        }
-      },
-      "required": [
-        "headers",
-        "method",
-        "url"
-      ],
-      "description": "Properties of the request."
-    },
-    "LiveResponse": {
-      "properties": {
-        "statusCode": {
-          "description": "The Response status code.",
-          "type": "string"
-        },
-        "headers": {
-          "description": "Headers of the response.",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        },
-        "body": {
-          "description": "Body of the response.",
-          "type": "object"
-        },
-        "encoding": {
-          "description": "The encoding of the response body when the body is a buffer.",
-          "type": "string"
-        }
-      },
-      "required": [
-        "statusCode",
-        "headers"
-      ],
-      "description": "Properties of the response."
-    },
-    "OperationInfo": {
-      "description": "Describes the operation against which the live request and response validation happened.",
-      "type": "object",
-      "required": [
-        "operationId",
-        "apiVersion"
-      ],
-      "properties": {
-        "operationId": {
-          "type": "string",
-          "description": "The id of the operation against which validation happened. This will help find the problematic information in the spec and will be useful in preparing report."
-        },
-        "apiVersion": {
-          "type": "string",
-          "description": "Describes the api-version of the openapi specification. This will help find the openapi spec corresponding to that api-version and will be useful in preparing report."
-        }
+  "/validations/{validationId}": {
+   "get": {
+    "operationId": "Oav_GetValidationResult",
+    "description": "Gets the result of a validation.",
+    "parameters": [
+     {
+      "name": "validationId",
+      "in": "path",
+      "required": true,
+      "minLength": 1,
+      "type": "string",
+      "description": "The validation model Id."
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Request was queued for processing successfully.",
+      "schema": {
+       "type": "array",
+       "items": {
+        "$ref": "#/definitions/OperationValidationResult"
+       }
       }
+     },
+     "default": {
+      "description": "Describes the error response for failing to queue the request."
+     }
     },
-    "ValidationResult": {
-      "description": "Describes the validation result of the live request, response validation.",
-      "type": "object",
-      "properties": {
-        "requestValidationResult": {
-          "description": "Describes the validation result of the live request.",
-          "$ref": "#/definitions/RequestValidationResult",
-          "readOnly": true
-        },
-        "responseValidationResult": {
-          "description": "Describes the validation result of the live response.",
-          "$ref": "#/definitions/ResponseValidationResult",
-          "readOnly": true
-        },
-        "errors": {
-          "description": "Provides more information about validation for scenarios where no potential operation was found or multiple operations were found or the input was invalid.",
-          "type": "array",
-          "readOnly": true,
-          "items": {
-            "$ref": "#/definitions/ErrorWrapper"
-          }
-        }
-      }
-    },
-    "RequestValidationResult": {
-      "description": "Describes the validation result of the live request.",
-      "properties": {
-        "successfulRequest": {
-          "readOnly": true,
-          "type": "boolean",
-          "description": "Describes the status of live request validation."
-        },
-        "operationInfo": {
-          "readOnly": true,
-          "description": "The corresponding operation(s) in openapi spec that was used for validating the request.",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/OperationInfo"
-          }
-        },
-        "errors": {
-          "readOnly": true,
-          "description": "Provides more information about live response validation.",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/ErrorWrapper"
-          }
-        }
-      }
-    },
-    "ResponseValidationResult": {
-      "description": "Describes the validation result of the live response.",
-      "properties": {
-        "successfulResponse": {
-          "type": "boolean",
-          "readOnly": true,
-          "description": "Describes the status of live response validation."
-        },
-        "operationInfo": {
-          "readOnly": true,
-          "description": "The corresponding operation(s) in openapi spec that was used for validating the response.",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/OperationInfo"
-          }
-        },
-        "errors": {
-          "readOnly": true,
-          "description": "Provides more information about live response validation.",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/ErrorWrapper"
-          }
-        }
-      }
-    },
-    "LiveValidationError": {
-      "description": "Describes the error occurred while performing validation on live request/response.",
-      "type": "object",
-      "required": [
-        "code",
-        "message"
-      ],
-      "properties": {
-        "code": {
-          "description": "The unique error code describing an error.",
-          "type": "string"
-        },
-        "message": {
-          "description": "The error message providing meaningful information.",
-          "type": "string"
-        }
-      }
-    },
-    "ErrorResponse": {
-      "description": "Describes the error response for negative scenarios.",
-      "type": "object",
-      "properties": {
-        "description": {
-          "description": "Description of the model property or the parameter in the swagger spec that causes validation failure.",
-          "type": "string"
-        },
-        "params": {
-          "description": "The parameters used when validation failed (z-schema construct).",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "path": {
-          "description": "The path to the location in the document or the model where the error/warning occurred.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      },
-      "allOf": [
-        {
-          "$ref": "#/definitions/LiveValidationError"
-        }
-      ]
-    },
-    "ErrorWrapper": {
-      "description": "Wrapper object",
-      "properties": {
-        "errors": {
-          "description": "An array of inner errors.",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/ErrorResponse"
-          }
-        }
-      },
-      "allOf": [
-        {
-          "$ref": "#/definitions/ErrorResponse"
-        }
-      ]
-    }
+    "produces": [
+     "application/json"
+    ],
+    "consumes": [
+     "application/json"
+    ]
+   }
   }
+ },
+ "definitions": {
+  "RequestResponse": {
+   "properties": {
+    "liveRequest": {
+     "description": "Schema for the live request to be validated",
+     "$ref": "#/definitions/LiveRequest"
+    },
+    "liveResponse": {
+     "description": "Schema for the live response to be validated",
+     "$ref": "#/definitions/LiveResponse"
+    }
+   },
+   "required": [
+    "liveRequest",
+    "liveResponse"
+   ],
+   "description": "Describes the live request and response to be validated."
+  },
+  "LiveRequest": {
+   "properties": {
+    "headers": {
+     "description": "Headers of the request.",
+     "type": "object",
+     "additionalProperties": {
+      "type": "string"
+     }
+    },
+    "method": {
+     "description": "Http verb of the request.",
+     "type": "string",
+     "enum": [
+      "GET",
+      "PUT",
+      "PATCH",
+      "POST",
+      "DELETE",
+      "HEAD",
+      "OPTIONS",
+      "TRACE"
+     ]
+    },
+    "url": {
+     "description": "Url of the request.",
+     "type": "string"
+    },
+    "body": {
+     "description": "Parsed body of the request as a JSON.",
+     "type": "object"
+    }
+   },
+   "required": [
+    "headers",
+    "method",
+    "url"
+   ],
+   "description": "Properties of the request."
+  },
+  "LiveResponse": {
+   "properties": {
+    "statusCode": {
+     "description": "The Response status code.",
+     "type": "string"
+    },
+    "headers": {
+     "description": "Headers of the response.",
+     "type": "object",
+     "additionalProperties": {
+      "type": "string"
+     }
+    },
+    "body": {
+     "description": "Body of the response.",
+     "type": "object"
+    },
+    "encoding": {
+     "description": "The encoding of the response body when the body is a buffer.",
+     "type": "string"
+    }
+   },
+   "required": [
+    "statusCode",
+    "headers"
+   ],
+   "description": "Properties of the response."
+  },
+  "OperationInfo": {
+   "description": "Describes the operation against which the live request and response validation happened.",
+   "type": "object",
+   "required": [
+    "operationId",
+    "apiVersion"
+   ],
+   "properties": {
+    "operationId": {
+     "type": "string",
+     "description": "The id of the operation against which validation happened. This will help find the problematic information in the spec and will be useful in preparing report."
+    },
+    "apiVersion": {
+     "type": "string",
+     "description": "Describes the api-version of the openapi specification. This will help find the openapi spec corresponding to that api-version and will be useful in preparing report."
+    }
+   }
+  },
+  "ValidationModel": {
+   "type": "object",
+   "properties": {
+    "repoUrl": {
+     "minLength": 1,
+     "type": "string",
+     "description": "The repo url from where to construct the swagger model."
+    },
+    "branch": {
+     "minLength": 1,
+     "type": "string",
+     "description": "The branch of the repo from where to construct the swagger model."
+    },
+    "resourceProvider": {
+     "minLength": 1,
+     "type": "string",
+     "description": "The resource provider for whom to construct the swagger model."
+    },
+    "apiVersion": {
+     "minLength": 1,
+     "type": "string",
+     "description": "The api version of the resource provider to construct the swagger model."
+    },
+    "duration": {
+     "minLength": 1,
+     "type": "integer",
+     "description": "The duration in seconds for which to run validations against the model. The results of the validation will be available only after this duration has passed."
+    }
+   },
+   "required": [
+    "repoUrl",
+    "branch",
+    "resourceProvider",
+    "apiVersion",
+    "duration"
+   ],
+   "description": "Properties of the validation model."
+  },
+  "CreateValidationModelResponse": {
+   "description": "Response to a Create Validation Model request.",
+   "type": "object",
+   "properties": {
+    "validationId": {
+     "description": "The id of the validation model created.",
+     "type": "string",
+     "readOnly": true
+    }
+   }
+  },
+  "OperationValidationResult": {
+   "description": "The validation results of a specific operation of the swagger model.",
+   "type": "object",
+   "properties": {
+    "validationId": {
+     "description": "The id of the swagger model to which the results belong.",
+     "type": "string",
+     "readOnly": true
+    },
+    "operationId": {
+     "description": "The operationId to which the results belong.",
+     "type": "string",
+     "readOnly": true
+    },
+    "resourceProvider": {
+     "description": "The resource provider for which the swagger model was built.",
+     "type": "string",
+     "readOnly": true
+    },
+    "apiVersion": {
+     "description": "The API version of the resource provider for which the swagger model was built.",
+     "type": "string",
+     "readOnly": true
+    },
+    "modelSourceRepo": {
+     "description": "The source repo of the swagger model.",
+     "type": "string",
+     "readOnly": true
+    },
+    "modelSourceBranch": {
+     "description": "The source branch of the swagger model.",
+     "type": "string",
+     "readOnly": true
+    },
+    "operations": {
+     "description": "The number of operations (Request-Response pair) that were validated.",
+     "type": "integer",
+     "readOnly": true
+    },
+    "successOperations": {
+     "description": "The number of operations (Request-Response pair) successfully validated.",
+     "type": "integer",
+     "readOnly": true
+    },
+    "successRate": {
+     "description": "The percent of successful operations validated.",
+     "type": "number",
+     "readOnly": true
+    },
+    "successRequests": {
+     "description": "The number of requests validated successfully.",
+     "type": "integer",
+     "readOnly": true
+    },
+    "successResponses": {
+     "description": "The number of responses validated successfully.",
+     "type": "integer",
+     "readOnly": true
+    },
+    "validationEndtime": {
+     "description": "The datetime when the validation completed.",
+     "type": "string",
+     "readOnly": true
+    }
+   }
+  }
+ }
 }

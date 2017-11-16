@@ -48,44 +48,13 @@
     "description": "Create a new swagger model to do validations against.",
     "parameters": [
      {
-      "name": "repoUrl",
+      "name": "validationModel",
       "in": "body",
       "required": true,
-      "minLength": 1,
-      "type": "string",
-      "description": "The repo url from where to construct the swagger model."
-     },
-     {
-      "name": "branch",
-      "in": "body",
-      "required": true,
-      "minLength": 1,
-      "type": "string",
-      "description": "The branch of the repo from where to construct the swagger model."
-     },
-     {
-      "name": "resourceProvider",
-      "in": "body",
-      "required": true,
-      "minLength": 1,
-      "type": "string",
-      "description": "The resource provider for whom to construct the swagger model."
-     },
-     {
-      "name": "apiVersion",
-      "in": "body",
-      "required": true,
-      "minLength": 1,
-      "type": "string",
-      "description": "The api version of the resource provider to construct the swagger model."
-     },
-     {
-      "name": "duration",
-      "in": "body",
-      "required": true,
-      "minLength": 1,
-      "type": "integer",
-      "description": "The duration in seconds for which to run validations against the model. The results of the validation will be available only after this duration has passed."
+      "schema": {
+       "$ref": "#/definitions/ValidationModel"
+      },
+      "description": "The parameters for the swagger model to create."
      }
     ],
     "responses": {
@@ -127,7 +96,7 @@
       "schema": {
        "type": "array",
        "items": {
-        "#ref": "#/definitions/OperationValidationResult"
+        "$ref": "#/definitions/OperationValidationResult"
        }
       }
      },
@@ -246,6 +215,44 @@
      "description": "Describes the api-version of the openapi specification. This will help find the openapi spec corresponding to that api-version and will be useful in preparing report."
     }
    }
+  },
+  "ValidationModel": {
+   "type": "object",
+   "properties": {
+    "repoUrl": {
+     "minLength": 1,
+     "type": "string",
+     "description": "The repo url from where to construct the swagger model."
+    },
+    "branch": {
+     "minLength": 1,
+     "type": "string",
+     "description": "The branch of the repo from where to construct the swagger model."
+    },
+    "resourceProvider": {
+     "minLength": 1,
+     "type": "string",
+     "description": "The resource provider for whom to construct the swagger model."
+    },
+    "apiVersion": {
+     "minLength": 1,
+     "type": "string",
+     "description": "The api version of the resource provider to construct the swagger model."
+    },
+    "duration": {
+     "minLength": 1,
+     "type": "integer",
+     "description": "The duration in seconds for which to run validations against the model. The results of the validation will be available only after this duration has passed."
+    }
+   },
+   "required": [
+    "repoUrl",
+    "branch",
+    "resourceProvider",
+    "apiVersion",
+    "duration"
+   ],
+   "description": "Properties of the validation model."
   },
   "CreateValidationModelResponse": {
    "description": "Response to a Create Validation Model request.",

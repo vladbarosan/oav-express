@@ -1,12 +1,12 @@
 # oav-express web service
 
 ### Requirements
-- **node version > 6.x**
+- **node version > 8.6**
 
 You can install the latest stable release of node.js from [here](https://nodejs.org/en/download/). For a machine with a linux flavored OS, please follow the node.js installation instructions over [here](https://nodejs.org/en/download/package-manager/)
 
 
-### How to run the tool 
+### How to run the tool
 - After cloning the repo execute following steps from your terminal/cmd prompt
 
 ```

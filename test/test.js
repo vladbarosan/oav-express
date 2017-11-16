@@ -80,11 +80,13 @@ describe('oav-express', () => {
       let durationInSeconds = 5;
 
       const requestBody = {
-        repoUrl: "https://github.com/vladbarosan/sample-openapi-specs",
-        branch: "master",
-        resourceProvider: "Microsoft.Cache",
-        apiVersion: "2017-02-01",
-        duration: durationInSeconds
+        validationModel: {
+          repoUrl: "https://github.com/vladbarosan/sample-openapi-specs",
+          branch: "master",
+          resourceProvider: "Microsoft.Cache",
+          apiVersion: "2017-02-01",
+          duration: durationInSeconds
+        }
       }
 
       const bodyAsString = JSON.stringify(requestBody);
@@ -110,11 +112,13 @@ describe('oav-express', () => {
       let durationInSeconds = 5;
 
       const requestBody = {
-        repoUrl: "https://github.com/vladbarosan/sample-openapi-specs",
-        branch: "master",
-        resourceProvider: "Microsoft.Cache",
-        apiVersion: "2017-02-01",
-        duration: durationInSeconds
+        validationModel: {
+          repoUrl: "https://github.com/vladbarosan/sample-openapi-specs",
+          branch: "master",
+          resourceProvider: "Microsoft.Cache",
+          apiVersion: "2017-02-01",
+          duration: durationInSeconds
+        }
       }
 
       const bodyAsString = JSON.stringify(requestBody);
